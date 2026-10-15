@@ -1,0 +1,14 @@
+# Chặn thực thi PHP trong thư mục uploads
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phps|pht|phar|shtml)$">
+    Require all denied
+</FilesMatch>
+
+# Chặn truy cập file ẩn
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Chỉ cho phép các file media
+<FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|pdf|ico)$">
+    Require all granted
+</FilesMatch>

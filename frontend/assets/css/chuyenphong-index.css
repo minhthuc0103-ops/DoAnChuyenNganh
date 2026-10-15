@@ -1,0 +1,22 @@
+
+/* Responsive riêng cho trang chuyển phòng */
+.transfer-page,.transfer-card{width:100%;max-width:100%;min-width:0;}
+.transfer-filter{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.transfer-empty{text-align:center;padding:48px 16px;color:var(--text3);overflow-wrap:anywhere;word-break:break-word;}
+.transfer-item{padding:18px 20px;border-bottom:1px solid var(--border);}
+.transfer-row{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;min-width:0;}
+.transfer-main{flex:1 1 280px;min-width:0;overflow-wrap:anywhere;word-break:break-word;}
+.transfer-admin-form{flex:0 1 320px;min-width:260px;max-width:100%;display:flex;flex-direction:column;gap:8px;}
+.transfer-admin-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.transfer-admin-actions .btn{flex:1 1 110px;justify-content:center;}
+@media(max-width:600px){
+  .transfer-filter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+  .transfer-filter .btn{width:100%;min-width:0;justify-content:center;padding-left:7px;padding-right:7px;white-space:normal;text-align:center;}
+  .transfer-item{padding:14px 12px;}
+  .transfer-row{display:block;}
+  .transfer-main{width:100%;min-width:0;}
+  .transfer-admin-form{width:100%;min-width:0;margin-top:14px;}
+  .transfer-empty{padding:36px 14px;font-size:13px;line-height:1.6;}
+  .transfer-card .card-header,.transfer-card .card-body{padding-left:14px;padding-right:14px;}
+  .transfer-card select.form-control{max-width:100%;}
+}

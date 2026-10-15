@@ -1,0 +1,4 @@
+
+.loai-btn { transition: all .15s; }
+.loai-btn:hover { border-color: rgba(79,142,247,.3) !important; background: rgba(79,142,247,.03) !important; }
+.loai-btn.active { border-color: rgba(79,142,247,.6) !important; background: rgba(79,142,247,.08) !important; box-shadow: 0 0 0 3px rgba(79,142,247,.1); }

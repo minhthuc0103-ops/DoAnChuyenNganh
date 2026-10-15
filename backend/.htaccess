@@ -1,0 +1,2 @@
+# Chặn truy cập trực tiếp qua URL. PHP include nội bộ vẫn chạy bình thường.
+Require all denied

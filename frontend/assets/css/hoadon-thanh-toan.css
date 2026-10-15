@@ -1,0 +1,8 @@
+
+.pt-option {display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg3);border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s;}
+.pt-option:hover {border-color:rgba(79,142,247,.4);}
+.pt-option.active {border-color:var(--accent);background:rgba(79,142,247,.08);box-shadow:0 0 0 3px rgba(79,142,247,.12);}
+.copy-btn {background:rgba(79,142,247,.12);border:none;border-radius:6px;color:var(--accent);font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;transition:.15s;white-space:nowrap;}
+.copy-btn:hover {background:rgba(79,142,247,.25);}
+.copy-btn.copied {background:rgba(34,201,147,.15);color:var(--green);}
+.bank-row {display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg3);border-radius:8px;margin-bottom:6px;gap:12px;}

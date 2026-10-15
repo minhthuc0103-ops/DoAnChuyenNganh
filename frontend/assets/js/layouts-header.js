@@ -1,0 +1,1 @@
+setTimeout(()=>{const e=document.getElementById('autoMsg');if(e){e.style.transition='opacity .4s';e.style.opacity='0';setTimeout(()=>e.remove(),400);}},4000);
