@@ -6,3 +6,5 @@ Thumbs.db
 .env
 .vscode/
 .idea/
+# Mật khẩu ứng dụng Gmail / token Zalo — KHÔNG đưa lên Git
+backend/config/notify.local.php

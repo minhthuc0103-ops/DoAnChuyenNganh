@@ -16,6 +16,8 @@ class HoaDonController {
         $thang = (int)($_GET['thang'] ?? date('m'));
         $nam   = (int)($_GET['nam']   ?? date('Y'));
         $list  = $this->model->getByThangNam($thang, $nam);
+        $trangThaiGui = $list ? (new HoaDonGuiModel())->moiNhat(array_column($list, 'id')) : [];
+        $nguoiNhan    = $list ? HoaDonThongBao::nguoiNhanTheoPhong(array_column($list, 'phong_id')) : [];
         $title = 'Quản lý hóa đơn';
         require 'frontend/views/HoaDon/index.php';
     }
@@ -75,7 +77,14 @@ class HoaDonController {
                     'tong_tien'       => $tong_tien,
                 ]);
                 if ($created) {
-                    $this->taoThongBaoDongTien($phong_id, $p['so_phong'] ?? '', $thang, $nam, $tong_tien, $this->model->getLastInsertId());
+                    $hoaDonId = $this->model->getLastInsertId();
+                    $this->taoThongBaoDongTien($phong_id, $p['so_phong'] ?? '', $thang, $nam, $tong_tien, $hoaDonId);
+                    // Tự gửi hóa đơn qua Gmail / Zalo. Gửi lỗi chỉ ghi nhật ký, không làm hỏng việc tạo hóa đơn.
+                    try {
+                        HoaDonThongBao::guiHoaDon($hoaDonId, true);
+                    } catch (\Throwable $e) {
+                        error_log('Gui hoa don tu dong loi: ' . $e->getMessage());
+                    }
                 }
                 header('Location: index.php?controller=hoadon&action=index&msg=created');
                 exit;
@@ -146,6 +155,7 @@ class HoaDonController {
         $hd = $this->model->getById($id);
 
         if (!$hd || $hd['trang_thai'] !== 'chua_tt') {
+            
             header('Location: index.php?controller=hoadon&action=index');
             exit;
         }
@@ -174,6 +184,12 @@ class HoaDonController {
                     'nguoi_tra'   => '',
                     'ghi_chu'     => $ghiChuLichSu,
                 ]);
+            }
+
+            try {
+                HoaDonThongBao::guiBienNhan($id, true);
+            } catch (\Throwable $e) {
+                error_log('Gui bien nhan loi: ' . $e->getMessage());
             }
 
             header('Location: index.php?controller=hoadon&action=index&msg=paid');
@@ -231,6 +247,35 @@ class HoaDonController {
         ]);
 
         header('Location: index.php?controller=user&action=index');
+        exit;
+    }
+
+    // Chủ trọ bấm "Gửi": gửi lại hóa đơn (hoặc biên nhận nếu đã thanh toán) qua các kênh đang bật
+    public function guiLai() {
+        if (!in_array($_SESSION['vai_tro'] ?? '', ['quan_ly', 'chu_tro'], true) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?controller=hoadon&action=index');
+            exit;
+        }
+        Csrf::check();
+
+        $id    = (int)($_POST['id'] ?? 0);
+        $thang = (int)($_POST['thang'] ?? date('m'));
+        $nam   = (int)($_POST['nam'] ?? date('Y'));
+        $back  = "index.php?controller=hoadon&action=index&thang=$thang&nam=$nam";
+
+        $hd = $id ? $this->model->getById($id) : false;
+        if (!$hd) {
+            header('Location: ' . $back . '&err=' . urlencode('Không tìm thấy hóa đơn.'));
+            exit;
+        }
+        try {
+            $ket = $hd['trang_thai'] === 'da_tt' ? HoaDonThongBao::guiBienNhan($id, false) : HoaDonThongBao::guiHoaDon($id, false);
+            [$ok, $noiDung] = HoaDonThongBao::tomTat($ket);
+        } catch (\Throwable $e) {
+            error_log('Gui lai hoa don loi: ' . $e->getMessage());
+            [$ok, $noiDung] = [false, 'Có lỗi khi gửi, xem log máy chủ.'];
+        }
+        header('Location: ' . $back . ($ok ? '&gui=' : '&err=') . urlencode($noiDung));
         exit;
     }
 

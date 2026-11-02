@@ -1,0 +1,8 @@
+/* Thanh gợi ý cài app (PWA). Nằm dưới nút chat AI (z-index 1200) và chừa chỗ cho nút đó bên phải. */
+.rm-install{position:fixed;left:12px;right:84px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:1100;max-width:440px;display:flex;align-items:center;gap:10px;padding:10px 12px;background:#161922;color:#e8eaf0;border:1px solid rgba(255,255,255,.12);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.45);font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.rm-install span{flex:1}
+.rm-install button{border:0;cursor:pointer;font:inherit}
+.rm-install .rm-go{background:#4f8ef7;color:#fff;font-weight:700;padding:7px 14px;border-radius:8px;white-space:nowrap}
+.rm-install .rm-x{background:transparent;color:#8b90a0;font-size:20px;line-height:1;padding:2px 6px}
+/* Màn rộng có sidebar 240px bên trái: dời thanh sang phải sidebar */
+@media (min-width:901px){.rm-install.rm-with-sidebar{left:260px;bottom:20px}}

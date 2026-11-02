@@ -15,6 +15,13 @@ $nam   = (int)($_GET['nam']  ??date('Y'));
   </div>
 </div>
 
+<link rel="stylesheet" href="frontend/assets/css/hoadon-gui.css">
+<?php if (!empty($_GET['err'])): ?>
+<div class="msg-alert msg-error" style="margin-bottom:14px;">⚠️ <?= htmlspecialchars($_GET['err']) ?></div>
+<?php elseif (!empty($_GET['gui'])): ?>
+<div class="msg-alert msg-success" style="margin-bottom:14px;">📤 <?= htmlspecialchars($_GET['gui']) ?></div>
+<?php endif; ?>
+
 <!-- FILTER THÁNG -->
 <form method="GET" action="index.php" style="margin-bottom:16px;">
   <input type="hidden" name="controller" value="hoadon"/>
@@ -75,6 +82,12 @@ $nam   = (int)($_GET['nam']  ??date('Y'));
           <?php elseif(!empty($hd['pending_count'])): ?><span class="pill p-amber">Chờ xác nhận</span>
           <?php else: ?><span class="pill p-red">Chưa TT</span>
           <?php endif; ?>
+          <?php foreach (['email' => '✉️', 'zalo' => '💬'] as $kenh => $bieuTuong): $g = $trangThaiGui[$hd['id']][$kenh] ?? null; if (!$g) continue; ?>
+          <div class="hd-gui hd-gui-<?= htmlspecialchars($g['trang_thai']) ?>" title="<?= htmlspecialchars($g['chi_tiet']) ?>">
+            <?= $bieuTuong ?> <?= ['thanh_cong' => 'Đã gửi', 'that_bai' => 'Gửi lỗi', 'bo_qua' => 'Bỏ qua'][$g['trang_thai']] ?>
+            <?= date('d/m H:i', strtotime($g['created_at'])) ?><?= $g['loai'] === 'bien_nhan' ? ' (biên nhận)' : '' ?>
+          </div>
+          <?php endforeach; ?>
         </td>
         <td class="mob-actions" style="text-align:center;">
           <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;">
@@ -83,6 +96,17 @@ $nam   = (int)($_GET['nam']  ??date('Y'));
             <?php if($hd['trang_thai']==='chua_tt'): ?>
             <a href="index.php?controller=hoadon&action=thanhToan&id=<?= $hd['id'] ?>"
                class="btn btn-success btn-xs"><?= !empty($hd['pending_count']) ? '✓ Xác nhận' : '💳 Thu tiền' ?></a>
+            <?php endif; ?>
+              <form method="POST" action="index.php?controller=hoadon&action=guiLai" style="display:inline;">
+              <?= Csrf::field() ?>
+              <input type="hidden" name="id" value="<?= (int)$hd['id'] ?>">
+              <input type="hidden" name="thang" value="<?= $thang ?>"><input type="hidden" name="nam" value="<?= $nam ?>">
+              <button type="submit" class="btn btn-outline btn-xs" style="cursor:pointer;" title="Gửi qua Gmail / Zalo ZNS">📤 <?= $hd['trang_thai'] === 'da_tt' ? 'Biên nhận' : 'Gửi' ?></button>
+            </form>
+            <?php $ng = $nguoiNhan[$hd['phong_id']] ?? null; if ($ng && !empty($ng['sdt'])): ?>
+            <button type="button" class="btn btn-outline btn-xs hd-zalo" title="Sao chép nội dung và mở Zalo"
+                    data-sdt="<?= htmlspecialchars(preg_replace('/\D/', '', $ng['sdt'])) ?>"
+                    data-msg="<?= htmlspecialchars(HoaDonThongBao::vanBanZalo($hd, $ng), ENT_QUOTES) ?>">💬 Zalo</button>
             <?php endif; ?>
             <form method="POST" action="index.php?controller=hoadon&action=delete" style="display:inline;" onsubmit="return confirm('Xóa hóa đơn này?')">
             <?= Csrf::field() ?>
@@ -104,5 +128,5 @@ $nam   = (int)($_GET['nam']  ??date('Y'));
   <?php endif; ?>
 </div>
 
+<script src="frontend/assets/js/hoadon-gui.js"></script>
 <?php require_once 'frontend/views/Layouts/footer.php'; ?>
-

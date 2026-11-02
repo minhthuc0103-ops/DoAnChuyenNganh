@@ -6,6 +6,7 @@
 <title>Đặt lại mật khẩu — RoomManager</title>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="frontend/assets/css/auth-reset-password.css">
+<?php require 'frontend/views/Layouts/pwa_head.php'; ?>
 </head>
 <body>
 

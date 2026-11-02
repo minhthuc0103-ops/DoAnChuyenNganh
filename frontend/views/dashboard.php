@@ -6,6 +6,7 @@
 <title>Admin — RoomManager</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="frontend/assets/css/dashboard.css">
+<?php require 'frontend/views/Layouts/pwa_head.php'; ?>
 </head>
 <body>
 
@@ -24,6 +25,10 @@
     <a href="index.php?controller=hoadon&action=index"    class="nav-item">
       <span class="ni">🧾</span> Hóa đơn
       <?php if (!empty($soHoaDonChua)): ?><span class="nav-badge"><?= $soHoaDonChua ?></span><?php endif; ?>
+    </a>
+        <a href="index.php?controller=canhbao&action=index"   class="nav-item">
+      <span class="ni">⚠️</span> Cảnh báo khách rời
+      <?php $__soCanhBao = (new CanhBaoModel())->countCanChuY(); if ($__soCanhBao > 0): ?><span class="nav-badge" style="background:#f75c5c;"><?= $__soCanhBao ?></span><?php endif; ?>
     </a>
     <div class="sidebar-label">Hệ thống</div>
     <a href="index.php?controller=khutro&action=index"    class="nav-item"><span class="ni">🏘️</span> Khu trọ</a>

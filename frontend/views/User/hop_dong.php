@@ -310,7 +310,10 @@ function printHopDong() {
     const w = window.open('', '_blank', 'width=800,height=900');
     w.document.write(`<!DOCTYPE html><html><head>
         <title>Hợp đồng #<?= str_pad($hopDong['id'], 4, '0', STR_PAD_LEFT) ?></title>
-        <link rel="stylesheet" href="frontend/assets/css/user-hop-dong.css"></head><body>
+        <style>
+            body { font-family: 'Times New Roman', serif; font-size: 14pt; line-height: 2; margin: 60px; color: #000; }
+            pre  { white-space: pre-wrap; font-family: inherit; font-size: inherit; }
+        </style></head><body>
         <pre>${el.innerText}</pre>
         </body></html>`);
     w.document.close();

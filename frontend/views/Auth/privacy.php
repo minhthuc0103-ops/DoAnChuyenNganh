@@ -6,6 +6,7 @@
 <title>Chính sách bảo mật - RoomManager</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="frontend/assets/css/auth-privacy.css">
+<?php require 'frontend/views/Layouts/pwa_head.php'; ?>
 </head>
 <body>
 <div class="wrap">
