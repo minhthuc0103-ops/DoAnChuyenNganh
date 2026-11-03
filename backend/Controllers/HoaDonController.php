@@ -86,7 +86,12 @@ class HoaDonController {
                         error_log('Gui hoa don tu dong loi: ' . $e->getMessage());
                     }
                 }
-                header('Location: index.php?controller=hoadon&action=index&msg=created');
+                // Tạo xong thì mở luôn trang QR (đã điền sẵn đúng số tiền) của hóa đơn vừa tạo để đưa cho người thuê quét
+                if ($created && !empty($hoaDonId)) {
+                    header('Location: index.php?controller=hoadon&action=thanhToan&id=' . (int)$hoaDonId . '&msg=created');
+                } else {
+                    header('Location: index.php?controller=hoadon&action=index&msg=created');
+                }
                 exit;
             }
         }

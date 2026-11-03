@@ -164,7 +164,7 @@ class HoaDonThongBao
     private static function urlQr(array $hd): string
     {
         return 'https://img.vietqr.io/image/' . BANK_ID . '-' . BANK_ACCOUNT . '-' . VIETQR_TEMPLATE . '.jpg'
-            . '?amount=' . (int)$hd['tong_tien']
+            . '?amount=' . (int)round((float)$hd['tong_tien'])
             . '&addInfo=' . urlencode(self::noiDungCK($hd))
             . '&accountName=' . urlencode(BANK_NAME);
     }
