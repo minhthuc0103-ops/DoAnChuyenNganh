@@ -63,18 +63,27 @@ class HoaDonController {
                 $so_xe  = (int)$sXe->fetchColumn();
                 $phi_xe = $so_xe * 100000;
                 $tong_tien = (float)$p['gia'] + $td + $tn + $phi_dv + $phi_xe;
+                $anh_dien = trim($_POST['anh_cong_to_dien'] ?? '');
+                $anh_nuoc = trim($_POST['anh_cong_to_nuoc'] ?? '');
+                $bcs_id   = (int)($_POST['bao_chi_so_id'] ?? 0);
+
                 $created = $this->model->create([
-                    'phong_id'        => $phong_id, 'thang' => $thang, 'nam' => $nam,
-                    'chi_so_dien_cu'  => $dc, 'chi_so_dien_moi' => $dm,
-                    'chi_so_nuoc_cu'  => $nc, 'chi_so_nuoc_moi' => $nm,
-                    'tien_phong'      => (float)$p['gia'],
-                    'tien_dien'       => $td, 'tien_nuoc' => $tn,
-                    'phi_dich_vu'     => $phi_dv,
-                    'phi_xe'          => $phi_xe,
-                    'so_xe'           => $so_xe,
-                    'tong_tien'       => $tong_tien,
+                    'phong_id'         => $phong_id, 'thang' => $thang, 'nam' => $nam,
+                    'chi_so_dien_cu'   => $dc, 'chi_so_dien_moi' => $dm,
+                    'anh_cong_to_dien' => $anh_dien ?: null,
+                    'chi_so_nuoc_cu'   => $nc, 'chi_so_nuoc_moi' => $nm,
+                    'anh_cong_to_nuoc' => $anh_nuoc ?: null,
+                    'tien_phong'       => (float)$p['gia'],
+                    'tien_dien'        => $td, 'tien_nuoc' => $tn,
+                    'phi_dich_vu'      => $phi_dv,
+                    'phi_xe'           => $phi_xe,
+                    'so_xe'            => $so_xe,
+                    'tong_tien'        => $tong_tien,
                 ]);
                 if ($created) {
+                    if ($bcs_id) {
+                        (new BaoChiSoModel())->updateStatus($bcs_id, 'da_duyet');
+                    }
                     $this->taoThongBaoDongTien($phong_id, $p['so_phong'] ?? '', $thang, $nam, $tong_tien, $this->model->getLastInsertId());
                 }
                 header('Location: index.php?controller=hoadon&action=index&msg=created');
@@ -303,6 +312,47 @@ class HoaDonController {
 
         $title = 'Lịch sử thanh toán';
         require 'frontend/views/HoaDon/lich_su.php';
+    }
+
+    /**
+     * AJAX Lấy báo chỉ số của người thuê cho phòng/tháng/năm
+     */
+    public function getBaoChiSo() {
+        header('Content-Type: application/json');
+        $phong_id = (int)($_GET['phong_id'] ?? 0);
+        $thang    = (int)($_GET['thang'] ?? date('m'));
+        $nam      = (int)($_GET['nam'] ?? date('Y'));
+
+        $bcs = (new BaoChiSoModel())->getByPhongThangNam($phong_id, $thang, $nam);
+        if ($bcs) {
+            echo json_encode(['found' => true, 'data' => $bcs]);
+        } else {
+            echo json_encode(['found' => false]);
+        }
+        exit;
+    }
+
+    /**
+     * Danh sách báo chỉ số điện nước từ người thuê
+     */
+    public function baoChiSoList() {
+        $model = new BaoChiSoModel();
+        $list = $model->getAllPending();
+        $title = 'Duyệt chỉ số điện nước (AI)';
+        require 'frontend/views/HoaDon/bao_chi_so_list.php';
+    }
+
+    /**
+     * Từ chối báo chỉ số
+     */
+    public function tuChoiBaoChiSo() {
+        Csrf::check();
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id) {
+            (new BaoChiSoModel())->updateStatus($id, 'tu_choi');
+        }
+        header('Location: index.php?controller=hoadon&action=baoChiSoList&msg=rejected');
+        exit;
     }
 }
 

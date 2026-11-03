@@ -23,6 +23,15 @@
     $__soOCungChoDuyet = $__role === 'user'
       ? (new YeuCauNguoiOCungModel())->countPendingByUser((int)($_SESSION['user_id'] ?? 0))
       : (new YeuCauNguoiOCungModel())->countPending();
+    $__soLuuTruChoKhaiBao = 0;
+    $__soBaoChiSoChoDuyet = 0;
+    if ($__role !== 'user') {
+        try {
+            $__dbH = Database::getInstance();
+            $__soLuuTruChoKhaiBao = (int)$__dbH->query("SELECT COUNT(*) FROM khai_bao_luu_tru WHERE trang_thai='cho_khai_bao'")->fetchColumn();
+            $__soBaoChiSoChoDuyet = (int)$__dbH->query("SELECT COUNT(*) FROM bao_chi_so_dien_nuoc WHERE trang_thai='cho_duyet'")->fetchColumn();
+        } catch(\Throwable $e) {}
+    }
   ?>
   <a class="sidebar-logo" href="<?= $__role === 'user' ? 'index.php?controller=user&action=index' : 'index.php?controller=dashboard&action=index' ?>">
     <div class="logo-box">🏠</div>
@@ -51,6 +60,14 @@
     <a class="nav-item <?= (($_GET['controller']??'')==='user' && ($_GET['action']??'')==='hopDong')?'active':'' ?>"
        href="index.php?controller=user&action=hopDong">
       <div class="nav-icon">📄</div>Hợp đồng
+    </a>
+    <a class="nav-item <?= (($_GET['controller']??'')==='user' && ($_GET['action']??'')==='baoChiSo')?'active':'' ?>"
+       href="index.php?controller=user&action=baoChiSo">
+      <div class="nav-icon">⚡</div>Báo điện nước (AI)
+    </a>
+    <a class="nav-item <?= (($_GET['controller']??'')==='user' && ($_GET['action']??'')==='luuTru')?'active':'' ?>"
+       href="index.php?controller=user&action=luuTru">
+      <div class="nav-icon">📋</div>Khai báo lưu trú
     </a>
     <a class="nav-item <?= (($_GET['controller']??'')==='chuyenphong')?'active':'' ?>"
        href="index.php?controller=chuyenphong&action=index">
@@ -98,10 +115,22 @@
       <div class="nav-icon">📄</div>Hợp đồng
     </a>
 
+    <a class="nav-item <?= (($_GET['controller']??'')==='luutru')?'active':'' ?>"
+       href="index.php?controller=luutru&action=index">
+      <div class="nav-icon">📋</div>Khai báo lưu trú
+      <?php if ($__soLuuTruChoKhaiBao > 0): ?><span class="nav-badge nb-amber"><?= $__soLuuTruChoKhaiBao ?></span><?php endif; ?>
+    </a>
+
     <a class="nav-item <?= (($_GET['controller']??'')==='chuyenphong')?'active':'' ?>"
        href="index.php?controller=chuyenphong&action=index">
       <div class="nav-icon">🔄</div>Chuyển phòng
       <?php if ($__soChuyenPhongChoDuyet > 0): ?><span class="nav-badge nb-amber"><?= $__soChuyenPhongChoDuyet ?></span><?php endif; ?>
+    </a>
+
+    <a class="nav-item <?= (($_GET['controller']??'')==='hoadon' && ($_GET['action']??'')==='baoChiSoList')?'active':'' ?>"
+       href="index.php?controller=hoadon&action=baoChiSoList">
+      <div class="nav-icon">⚡</div>Duyệt điện nước (AI)
+      <?php if ($__soBaoChiSoChoDuyet > 0): ?><span class="nav-badge nb-amber"><?= $__soBaoChiSoChoDuyet ?></span><?php endif; ?>
     </a>
 
     <a class="nav-item <?= (($_GET['controller']??'')==='hoadon')?'active':'' ?>"

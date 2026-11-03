@@ -70,14 +70,14 @@ class HoaDonModel {
     public function create(array $d): bool {
         $s = $this->db->prepare(
             "INSERT INTO hoa_don
-             (phong_id,thang,nam,chi_so_dien_cu,chi_so_dien_moi,chi_so_nuoc_cu,chi_so_nuoc_moi,
+             (phong_id,thang,nam,chi_so_dien_cu,chi_so_dien_moi,anh_cong_to_dien,chi_so_nuoc_cu,chi_so_nuoc_moi,anh_cong_to_nuoc,
               tien_phong,tien_dien,tien_nuoc,phi_dich_vu,phi_xe,so_xe,tong_tien,trang_thai)
-             VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,'chua_tt')"
+             VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'chua_tt')"
         );
         return $s->execute([
             $d['phong_id'],$d['thang'],$d['nam'],
-            $d['chi_so_dien_cu'],$d['chi_so_dien_moi'],
-            $d['chi_so_nuoc_cu'],$d['chi_so_nuoc_moi'],
+            $d['chi_so_dien_cu'],$d['chi_so_dien_moi'],$d['anh_cong_to_dien'] ?? null,
+            $d['chi_so_nuoc_cu'],$d['chi_so_nuoc_moi'],$d['anh_cong_to_nuoc'] ?? null,
             $d['tien_phong'],$d['tien_dien'],$d['tien_nuoc'],
             $d['phi_dich_vu'] ?? 0,
             $d['phi_xe'] ?? 0,
@@ -171,5 +171,9 @@ class HoaDonModel {
         $s->execute([$phong_id]);
         $row = $s->fetch();
         return $row ?: ['chi_so_dien_moi' => 0, 'chi_so_nuoc_moi' => 0, 'thang' => 0, 'nam' => 0];
+    }
+
+    public function getLastByPhong(int $phong_id): array {
+        return $this->getChiSoCuoiCung($phong_id);
     }
 }

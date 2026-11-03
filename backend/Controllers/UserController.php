@@ -311,4 +311,65 @@ class UserController {
         $title = 'Chi tiết phòng ' . $phong['so_phong'];
         require 'frontend/views/User/chi_tiet_phong.php';
     }
+
+    public function luuTru() {
+        $account_id = (int)($_SESSION['user_id'] ?? 0);
+        $nguoi_thue = $this->nguoiThueModel->getByAccountId($account_id);
+        $luuTruModel = new LuuTruModel();
+        $list = $luuTruModel->getByAccountId($account_id);
+        $title = 'Thông tin khai báo lưu trú của tôi';
+        require 'frontend/views/User/luu_tru.php';
+    }
+
+    public function baoChiSo() {
+        $account_id = (int)($_SESSION['user_id'] ?? 0);
+        $nguoi_thue = $this->nguoiThueModel->getByAccountId($account_id);
+        $baoChiSoModel = new BaoChiSoModel();
+        $title = 'Báo chỉ số điện nước (AI)';
+        $error = '';
+        $success = '';
+
+        if (!$nguoi_thue || empty($nguoi_thue['phong_id'])) {
+            $phong = null;
+            $history = [];
+            require 'frontend/views/User/bao_chi_so.php';
+            return;
+        }
+
+        $phong_id = (int)$nguoi_thue['phong_id'];
+        $phong = (new PhongModel())->getById($phong_id);
+        $lastHd = (new HoaDonModel())->getChiSoCuoiCung($phong_id);
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            Csrf::check();
+            $thang = (int)($_POST['thang'] ?? date('m'));
+            $nam   = (int)($_POST['nam']   ?? date('Y'));
+            $csDien = (float)($_POST['chi_so_dien'] ?? 0);
+            $csNuoc = (float)($_POST['chi_so_nuoc'] ?? 0);
+            $anhDien = trim($_POST['anh_cong_to_dien'] ?? '');
+            $anhNuoc = trim($_POST['anh_cong_to_nuoc'] ?? '');
+            $ghiChu  = trim($_POST['ghi_chu'] ?? '');
+
+            if ($csDien <= 0 && $csNuoc <= 0) {
+                $error = 'Vui lòng nhập hoặc chụp ảnh chỉ số điện, nước!';
+            } else {
+                $baoChiSoModel->create([
+                    'phong_id'         => $phong_id,
+                    'nguoi_thue_id'    => $nguoi_thue['id'],
+                    'thang'            => $thang,
+                    'nam'              => $nam,
+                    'chi_so_dien'      => $csDien,
+                    'chi_so_nuoc'      => $csNuoc,
+                    'anh_cong_to_dien' => $anhDien ?: null,
+                    'anh_cong_to_nuoc' => $anhNuoc ?: null,
+                    'ghi_chu'          => $ghiChu,
+                    'trang_thai'       => 'cho_duyet'
+                ]);
+                $success = 'Đã gửi chỉ số điện nước thành công! Chủ trọ sẽ duyệt và lập hóa đơn.';
+            }
+        }
+
+        $history = $baoChiSoModel->getByNguoiThue($nguoi_thue['id']);
+        require 'frontend/views/User/bao_chi_so.php';
+    }
 }

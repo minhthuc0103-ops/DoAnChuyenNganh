@@ -114,6 +114,9 @@ $detailQrOptions = [
             Chỉ số: <?= $hd['chi_so_dien_cu'] ?> → <?= $hd['chi_so_dien_moi'] ?> kWh
             · Tiêu thụ: <strong style="color:var(--amber);"><?= $dienTieuThu ?> kWh</strong>
             · Đơn giá: <?= number_format($donGia['gia_dien']) ?>đ/kWh
+            <?php if(!empty($hd['anh_cong_to_dien'])): ?>
+              · <a href="<?= htmlspecialchars($hd['anh_cong_to_dien']) ?>" target="_blank" style="color:var(--accent);font-weight:600;text-decoration:none;">📷 Ảnh công tơ</a>
+            <?php endif; ?>
           </div>
         </div>
         <strong style="font-size:15px;color:var(--amber);"><?= number_format($hd['tien_dien']) ?>đ</strong>
@@ -128,6 +131,9 @@ $detailQrOptions = [
             Chỉ số: <?= $hd['chi_so_nuoc_cu'] ?> → <?= $hd['chi_so_nuoc_moi'] ?> m³
             · Tiêu thụ: <strong style="color:var(--accent);"><?= $nuocTieuThu ?> m³</strong>
             · Đơn giá: <?= number_format($donGia['gia_nuoc']) ?>đ/m³
+            <?php if(!empty($hd['anh_cong_to_nuoc'])): ?>
+              · <a href="<?= htmlspecialchars($hd['anh_cong_to_nuoc']) ?>" target="_blank" style="color:var(--accent);font-weight:600;text-decoration:none;">📷 Ảnh công tơ</a>
+            <?php endif; ?>
           </div>
         </div>
         <strong style="font-size:15px;color:var(--accent);"><?= number_format($hd['tien_nuoc']) ?>đ</strong>

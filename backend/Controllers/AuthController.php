@@ -16,35 +16,33 @@ class AuthController {
             // ═══ Lỗi #7: Brute-force protection ═══
             $key = '_login_attempts';
             $lockKey = '_login_locked_until';
+
+            $db   = Database::getInstance();
+            $stmt = $db->prepare("SELECT * FROM account WHERE username=? LIMIT 1");
+            $stmt->execute([$u]);
+            $user = $stmt->fetch();
+
+            if ($user && password_verify($p, $user['password'])) {
+                session_regenerate_id(true);
+                unset($_SESSION[$key], $_SESSION[$lockKey]);
+
+                $_SESSION['user']    = $user['username'];
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['ho_ten']  = $user['ho_ten'];
+                $_SESSION['vai_tro'] = $user['vai_tro'];
+                $dest = ($user['vai_tro'] === 'user')
+                    ? 'index.php?controller=user&action=index'
+                    : 'index.php?controller=dashboard&action=index';
+                header('Location: ' . $dest);
+                exit;
+            }
+
             if (isset($_SESSION[$lockKey]) && time() < $_SESSION[$lockKey]) {
                 $wait = $_SESSION[$lockKey] - time();
                 $error = "Tài khoản tạm khóa. Vui lòng thử lại sau {$wait} giây.";
             } else {
-                // Hết lock → reset
                 if (isset($_SESSION[$lockKey]) && time() >= $_SESSION[$lockKey]) {
                     unset($_SESSION[$key], $_SESSION[$lockKey]);
-                }
-
-                $db   = Database::getInstance();
-                $stmt = $db->prepare("SELECT * FROM account WHERE username=? LIMIT 1");
-                $stmt->execute([$u]);
-                $user = $stmt->fetch();
-
-                if ($user && password_verify($p, $user['password'])) {
-                    // ═══ Lỗi #4: Session Fixation Fix ═══
-                    session_regenerate_id(true);
-
-                    unset($_SESSION[$key], $_SESSION[$lockKey]); // reset attempts
-
-                    $_SESSION['user']    = $user['username'];
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['ho_ten']  = $user['ho_ten'];
-                    $_SESSION['vai_tro'] = $user['vai_tro'];
-                    $dest = ($user['vai_tro'] === 'user')
-                        ? 'index.php?controller=user&action=index'
-                        : 'index.php?controller=dashboard&action=index';
-                    header('Location: ' . $dest);
-                    exit;
                 }
 
                 // Đếm lần sai

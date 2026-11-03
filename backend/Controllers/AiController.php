@@ -691,6 +691,173 @@ Chức năng này chỉ dành cho quản lý.";
         return $data['candidates'][0]['content']['parts'][0]['text'] ?? 'Không có phản hồi.';
     }
 
+    public function readMeter()
+    {
+        header('Content-Type: application/json');
+        try {
+            $loai = $_POST['type'] ?? 'dien'; // 'dien' hoặc 'nuoc'
+            $imagePath = null;
+            $base64Data = null;
+            $mimeType = 'image/jpeg';
+
+            // Xử lý upload file
+            if (!empty($_FILES['meter_image']['name'])) {
+                $file = $_FILES['meter_image'];
+                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'heic'])) {
+                    echo json_encode(['ok' => false, 'message' => 'Định dạng ảnh không hợp lệ (chỉ nhận JPG, PNG, WEBP)']);
+                    exit;
+                }
+                $dir = __DIR__ . '/../../public/uploads/cong_to/';
+                if (!is_dir($dir)) {
+                    @mkdir($dir, 0777, true);
+                }
+                $fileName = 'meter_' . $loai . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                $target = $dir . $fileName;
+                if (move_uploaded_file($file['tmp_name'], $target)) {
+                    $imagePath = 'public/uploads/cong_to/' . $fileName;
+                    $rawBytes = file_get_contents($target);
+                    $base64Data = base64_encode($rawBytes);
+                    $mimeType = ($ext === 'png') ? 'image/png' : 'image/jpeg';
+                }
+            } elseif (!empty($_POST['image_base64'])) {
+                // Nhận base64 trực tiếp từ camera
+                $raw = $_POST['image_base64'];
+                if (preg_match('/^data:(image\/\w+);base64,/', $raw, $type)) {
+                    $raw = substr($raw, strpos($raw, ',') + 1);
+                    $mimeType = strtolower($type[1]);
+                }
+                $decoded = base64_decode($raw);
+                if ($decoded) {
+                    $dir = __DIR__ . '/../../public/uploads/cong_to/';
+                    if (!is_dir($dir)) {
+                        @mkdir($dir, 0777, true);
+                    }
+                    $ext = ($mimeType === 'image/png') ? 'png' : 'jpg';
+                    $fileName = 'meter_' . $loai . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                    $target = $dir . $fileName;
+                    file_put_contents($target, $decoded);
+                    $imagePath = 'public/uploads/cong_to/' . $fileName;
+                    $base64Data = base64_encode($decoded);
+                }
+            }
+
+            if (!$imagePath || !$base64Data) {
+                echo json_encode(['ok' => false, 'message' => 'Không tìm thấy dữ liệu ảnh công tơ']);
+                exit;
+            }
+
+            $reading = null;
+            $confidence = 0.85;
+            $note = '';
+
+            // 1. Thử nhận diện bằng Gemini Vision nếu có API key
+            if (defined('GEMINI_API_KEY') && GEMINI_API_KEY) {
+                try {
+                    $geminiResult = $this->callGeminiVision($base64Data, $mimeType, $loai);
+                    if ($geminiResult && isset($geminiResult['reading'])) {
+                        $reading = (float)$geminiResult['reading'];
+                        $confidence = (float)($geminiResult['confidence'] ?? 0.95);
+                        $note = 'Đọc bởi Gemini Vision AI';
+                    }
+                } catch (\Throwable $ex) {
+                    $note = 'Gemini error: ' . $ex->getMessage();
+                }
+            }
+
+            // 2. Nếu có gửi kèm kết quả OCR text từ frontend (Tesseract.js)
+            if ($reading === null && !empty($_POST['ocr_text'])) {
+                $extracted = $this->parseMeterFromText($_POST['ocr_text'], $loai);
+                if ($extracted !== null) {
+                    $reading = $extracted;
+                    $confidence = 0.9;
+                    $note = 'Nhận diện tự động qua AI OCR';
+                }
+            }
+
+            echo json_encode([
+                'ok' => true,
+                'reading' => $reading,
+                'confidence' => $confidence,
+                'file_path' => $imagePath,
+                'type' => $loai,
+                'note' => $note
+            ]);
+        } catch (\Throwable $e) {
+            echo json_encode(['ok' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    private function parseMeterFromText(string $text, string $type): ?float
+    {
+        // Loại bỏ ký tự không phải số và dấu chấm, phẩy
+        // Tìm các cụm số liên tục dạng 12345 hoặc 1234.5 hoặc 00123
+        preg_match_all('/\b\d+(?:[\.,]\d+)?\b/', $text, $matches);
+        if (!empty($matches[0])) {
+            foreach ($matches[0] as $numStr) {
+                $val = (float)str_replace(',', '.', $numStr);
+                if ($val > 0 && $val < 999999) {
+                    return $val;
+                }
+            }
+        }
+        return null;
+    }
+
+    private function callGeminiVision(string $base64Image, string $mimeType, string $type): ?array
+    {
+        $apiKey = GEMINI_API_KEY;
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/" . GEMINI_MODEL . ":generateContent?key=" . $apiKey;
+        $prompt = "Hình ảnh này là đồng hồ công tơ " . ($type === 'dien' ? 'điện (kWh)' : 'nước (m3)') . " sinh hoạt. "
+                . "Hãy nhận diện và đọc CHÍNH XÁC chỉ số tiêu thụ hiện tại hiển thị trên mặt số đồng hồ. "
+                . "Bỏ qua các chữ số thập phân màu đỏ nếu là đồng hồ cơ nước/điện dạng đĩa. "
+                . "Chỉ trả về định dạng JSON thuần túy: {\"reading\": 1234, \"confidence\": 0.95}";
+
+        $payload = json_encode([
+            'contents' => [
+                [
+                    'role' => 'user',
+                    'parts' => [
+                        ['text' => $prompt],
+                        [
+                            'inlineData' => [
+                                'mimeType' => $mimeType,
+                                'data' => $base64Image
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            'generationConfig' => [
+                'temperature' => 0.1,
+                'maxOutputTokens' => 200
+            ]
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_TIMEOUT => 25,
+            CURLOPT_SSL_VERIFYPEER => false
+        ]);
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        if (!$response) return null;
+        $resData = json_decode($response, true);
+        $rawText = $resData['candidates'][0]['content']['parts'][0]['text'] ?? '';
+        
+        // Trích xuất JSON từ phản hồi
+        if (preg_match('/\{[\s\S]*?\}/', $rawText, $m)) {
+            return json_decode($m[0], true);
+        }
+        return null;
+    }
+
     private function callOpenAI(string $message): string
     {
         $apiKey = OPENAI_API_KEY;
