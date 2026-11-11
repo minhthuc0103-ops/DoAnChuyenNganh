@@ -173,11 +173,14 @@ $init  = mb_strtoupper(mb_substr(end($parts), 0, 1, 'UTF-8'), 'UTF-8');
                     </div>
                     <?php endif; ?>
                   </div>
-                  <label style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;padding:6px;background:var(--card);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text2);">
-                    📷 Chọn ảnh mặt trước
-                    <input type="file" name="cccd_truoc" accept="image/*" style="display:none;"
-                           onchange="previewCCCD(this,'prevTruoc','phTruoc')"/>
-                  </label>
+                  <div class="cccd-pick">
+                    <button type="button" class="cccd-pick__btn cccd-pick__btn--cam" data-cccd-camera="cccd_truoc" data-cccd-title="Mặt trước">📷 Chụp ảnh</button>
+                    <label class="cccd-pick__btn">
+                      🖼 Chọn ảnh
+                      <input type="file" name="cccd_truoc" accept="image/jpeg,image/png,image/webp" style="display:none;"
+                             onchange="previewCCCD(this,'prevTruoc','phTruoc')"/>
+                    </label>
+                  </div>
                 </div>
 
                 <!-- Mặt sau -->
@@ -194,15 +197,18 @@ $init  = mb_strtoupper(mb_substr(end($parts), 0, 1, 'UTF-8'), 'UTF-8');
                     </div>
                     <?php endif; ?>
                   </div>
-                  <label style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;padding:6px;background:var(--card);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text2);">
-                    📷 Chọn ảnh mặt sau
-                    <input type="file" name="cccd_sau" accept="image/*" style="display:none;"
-                           onchange="previewCCCD(this,'prevSau','phSau')"/>
-                  </label>
+                  <div class="cccd-pick">
+                    <button type="button" class="cccd-pick__btn cccd-pick__btn--cam" data-cccd-camera="cccd_sau" data-cccd-title="Mặt sau">📷 Chụp ảnh</button>
+                    <label class="cccd-pick__btn">
+                      🖼 Chọn ảnh
+                      <input type="file" name="cccd_sau" accept="image/jpeg,image/png,image/webp" style="display:none;"
+                             onchange="previewCCCD(this,'prevSau','phSau')"/>
+                    </label>
+                  </div>
                 </div>
 
               </div>
-              <div style="font-size:11px;color:var(--text3);margin-top:8px;">JPG, PNG, WEBP · Tối đa 5MB mỗi ảnh</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:8px;">Chụp bằng camera hoặc chọn ảnh JPG, PNG, WEBP · Tối đa 5MB mỗi ảnh · Bấm "Lưu thay đổi" để lưu</div>
             </div>
 
             <div style="margin-top:14px;">
@@ -397,5 +403,7 @@ switchTab('pass');
 
 <!-- Responsive -->
 <link rel="stylesheet" href="frontend/assets/css/user-profile-2.css">
+<link rel="stylesheet" href="frontend/assets/css/cccd-camera.css">
+<script src="frontend/assets/js/cccd-camera.js" defer></script>
 
 <?php require_once 'frontend/views/Layouts/footer.php'; ?>
