@@ -88,6 +88,7 @@ $map = [
     'xe'          => 'XeController',
     'thongbao'    => 'ThongBaoController',
     'chuyenphong' => 'ChuyenPhongController',
+    'bangiao'     => 'BanGiaoController',
     'chat'        => 'ChatController',
     'ai'          => 'AiController',
     'aiknowledge' => 'AiKnowledgeController',

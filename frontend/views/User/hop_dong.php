@@ -8,7 +8,10 @@ require_once 'frontend/views/Layouts/header.php';
     <h1>📄 Hợp đồng của tôi</h1>
     <p>Thông tin hợp đồng thuê phòng</p>
   </div>
-  <a href="index.php?controller=user&action=index" class="btn btn-outline">← Phòng của tôi</a>
+  <div class="header-actions" style="display:flex;gap:10px;">
+    <a href="index.php?controller=bangiao&action=index" class="btn btn-primary">📦 Bàn giao & Báo trả phòng</a>
+    <a href="index.php?controller=user&action=index" class="btn btn-outline">← Phòng của tôi</a>
+  </div>
 </div>
 
 <?php if (!empty($_GET['err'])): ?>

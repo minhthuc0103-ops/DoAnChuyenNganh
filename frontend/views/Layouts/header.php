@@ -23,6 +23,9 @@
     $__soOCungChoDuyet = $__role === 'user'
       ? (new YeuCauNguoiOCungModel())->countPendingByUser((int)($_SESSION['user_id'] ?? 0))
       : (new YeuCauNguoiOCungModel())->countPending();
+    $__soTraPhongChoDuyet = $__role === 'user'
+      ? (new BanGiaoModel())->countPendingTraPhongByUser((int)($_SESSION['user_id'] ?? 0))
+      : (new BanGiaoModel())->countPendingTraPhong();
   ?>
   <a class="sidebar-logo" href="<?= $__role === 'user' ? 'index.php?controller=user&action=index' : 'index.php?controller=dashboard&action=index' ?>">
     <div class="logo-box">🏠</div>
@@ -56,6 +59,11 @@
        href="index.php?controller=chuyenphong&action=index">
       <div class="nav-icon">🔄</div>Chuyển phòng
       <?php if ($__soChuyenPhongChoDuyet > 0): ?><span class="nav-badge nb-amber"><?= $__soChuyenPhongChoDuyet ?></span><?php endif; ?>
+    </a>
+    <a class="nav-item <?= (($_GET['controller']??'')==='bangiao')?'active':'' ?>"
+       href="index.php?controller=bangiao&action=index">
+      <div class="nav-icon">📦</div>Bàn giao & Trả phòng
+      <?php if ($__soTraPhongChoDuyet > 0): ?><span class="nav-badge nb-amber"><?= $__soTraPhongChoDuyet ?></span><?php endif; ?>
     </a>
     <a class="nav-item <?= (($_GET['controller']??'')==='thongbao')?'active':'' ?>"
        href="index.php?controller=thongbao&action=index">
@@ -102,6 +110,11 @@
        href="index.php?controller=chuyenphong&action=index">
       <div class="nav-icon">🔄</div>Chuyển phòng
       <?php if ($__soChuyenPhongChoDuyet > 0): ?><span class="nav-badge nb-amber"><?= $__soChuyenPhongChoDuyet ?></span><?php endif; ?>
+    </a>
+    <a class="nav-item <?= (($_GET['controller']??'')==='bangiao')?'active':'' ?>"
+       href="index.php?controller=bangiao&action=index">
+      <div class="nav-icon">📦</div>Bàn giao & Trả phòng
+      <?php if ($__soTraPhongChoDuyet > 0): ?><span class="nav-badge nb-amber"><?= $__soTraPhongChoDuyet ?></span><?php endif; ?>
     </a>
 
     <a class="nav-item <?= (($_GET['controller']??'')==='hoadon')?'active':'' ?>"
