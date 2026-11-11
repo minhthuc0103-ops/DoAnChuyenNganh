@@ -21,6 +21,18 @@ class DashboardController {
         $sapHetHan     = $hopdongModel->getSapHetHan(30);
         $tongNguoiThue = $nguoiThueModel->count();
 
+        // Danh sách phòng (cho bảng "Danh sách phòng")
+        $phongs = $phongModel->getAll();
+
+        // Doanh thu theo tháng trong năm nay (cho biểu đồ), mảng khóa 1..12
+        $chartData = $hoadonModel->getDoanhThuTheoThang($nam);
+
+        // Hóa đơn chưa thu CỦA THÁNG NÀY (cho thẻ "Hóa đơn chưa thu")
+        $hoaDonChuaThu = array_values(array_filter(
+            $hoadonModel->getCongNo(),
+            fn($hd) => (int)$hd['thang'] === $thang && (int)$hd['nam'] === $nam
+        ));
+
         require 'frontend/views/dashboard.php';
     }
 }

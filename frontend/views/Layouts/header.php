@@ -61,7 +61,7 @@
     </a>
     <a class="nav-item <?= (($_GET['controller']??'')==='thongbao')?'active':'' ?>"
        href="index.php?controller=thongbao&action=index">
-      <div class="nav-icon">📢</div>bảo trì
+      <div class="nav-icon">📢</div>Bảo trì
     </a>
     <a class="nav-item <?= (($_GET['controller']??'')==='chat')?'active':'' ?>"
        href="index.php?controller=chat&action=index">
@@ -108,7 +108,7 @@
 
     <a class="nav-item <?= (($_GET['controller']??'')==='hoadon')?'active':'' ?>"
        href="index.php?controller=hoadon&action=index">
-      <div class="nav-icon">💵</div>Tổng chi phí
+      <div class="nav-icon">💵</div>Hóa đơn
     </a>
 
     <a class="nav-item <?= (($_GET['controller']??'')==='hoadon' && ($_GET['action']??'')==='lichSu')?'active':'' ?>"
