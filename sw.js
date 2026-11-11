@@ -2,11 +2,12 @@
  * Nguyên tắc: trang PHP (có session, CSRF, dữ liệu cá nhân, ảnh CCCD) KHÔNG BAO GIỜ được cache.
  * Chỉ cache file tĩnh trong frontend/assets/. Mất mạng -> hiện offline.html.
  * Đổi VERSION khi muốn ép trình duyệt xoá cache cũ. */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = 'roommanager-static-' + VERSION;
 const OFFLINE_URL = 'offline.html';
+// Ngoài offline.html (bắt buộc), file nào tải lỗi thì bỏ qua: addAll() hỏng cả lô chỉ vì 1 file 404
+// khiến service worker không bao giờ cài được.
 const PRECACHE = [
-  OFFLINE_URL,
   'manifest.json',
   'frontend/assets/icons/icon-192.png',
   'frontend/assets/icons/icon-512.png'
@@ -14,7 +15,13 @@ const PRECACHE = [
 const ASSET_PREFIX = new URL('frontend/assets/', self.location).pathname;
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => c.add(OFFLINE_URL).then(() =>
+        Promise.all(PRECACHE.map((u) => c.add(u).catch((err) => console.warn('[sw] bo qua', u, err))))
+      ))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (e) => {

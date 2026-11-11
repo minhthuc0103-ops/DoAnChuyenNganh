@@ -8,3 +8,10 @@ Thumbs.db
 .idea/
 # Mật khẩu ứng dụng Gmail / token Zalo — KHÔNG đưa lên Git
 backend/config/notify.local.php
+
+# Dữ liệu cá nhân người thuê — KHÔNG đưa lên Git (thư mục được code tự tạo khi upload)
+public/uploads/cccd/
+public/uploads/signatures/
+
+# File sao lưu database (chứa dữ liệu thật)
+*_backup.sql
