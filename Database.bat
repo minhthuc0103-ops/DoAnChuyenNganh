@@ -1,5 +1,6 @@
 @echo off
 setlocal
+if /i "%~1"=="nopause" (set "PAUSE_CMD=rem") else (set "PAUSE_CMD=pause")
 title SUA DATABASE CHO APP QUAN LY PHONG TRO
 
 rem ===== Duong dan XAMPP cua ban =====
@@ -19,12 +20,12 @@ echo.
 if not exist "%MYSQL%" (
     echo [LOI] Khong thay %MYSQL%
     echo Hay sua dong set "XAMPP=..." o dau file nay cho dung thu muc XAMPP.
-    pause
+    %PAUSE_CMD%
     exit /b 1
 )
 if not exist "backend\database\migrations\migration_columns.sql" (
     echo [LOI] Hay dat file nay trong thu muc du an, cung cho voi index.php.
-    pause
+    %PAUSE_CMD%
     exit /b 1
 )
 
@@ -34,7 +35,7 @@ if errorlevel 1 (
     echo [LOI] Khong ket noi duoc MySQL bang tai khoan root khong mat khau.
     echo - Neu MySQL chua bat: chay CHAY_APP.bat truoc, doi 10 giay roi chay lai file nay.
     echo - Neu root co mat khau: cho minh biet.
-    pause
+    %PAUSE_CMD%
     exit /b 1
 )
 echo       MySQL OK.
@@ -73,7 +74,7 @@ if "%HAS_NEW%"=="1" if "%NEW_OK%"=="0" (
     echo      Neu co CA HAI thu muc: cat ql_phong_tro ra Desktop. Dung xoa.
     echo   4. Chay CHAY_APP.bat, doi 10 giay, roi chay lai file nay.
     echo.
-    pause
+    %PAUSE_CMD%
     exit /b 1
 )
 if "%HAS_NEW%"=="0" if "%HAS_OLD%"=="1" if "%OLD_OK%"=="0" (
@@ -82,7 +83,7 @@ if "%HAS_NEW%"=="0" if "%HAS_OLD%"=="1" if "%OLD_OK%"=="0" (
     echo       Neu van khong duoc, cat ca hai thu muc ql_phongtro va ql_phong_tro ra Desktop.
     echo       Khi do file nay se tao moi tu file ql_phong_tro.sql, dung du lieu mau cua du an.
     echo.
-    pause
+    %PAUSE_CMD%
     exit /b 1
 )
 
@@ -94,19 +95,19 @@ if "%HAS_NEW%"=="1" (
     "%DUMP%" -u root --default-character-set=utf8mb4 ql_phongtro > "%BACKUP%"
     if errorlevel 1 (
         echo [LOI] Khong sao luu duoc ql_phongtro.
-        pause
+        %PAUSE_CMD%
         exit /b 1
     )
     "%MYSQL%" -u root -e "CREATE DATABASE ql_phong_tro CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
     if errorlevel 1 (
         echo [LOI] Khong tao duoc database ql_phong_tro.
-        pause
+        %PAUSE_CMD%
         exit /b 1
     )
     "%MYSQL%" -u root --default-character-set=utf8mb4 ql_phong_tro < "%BACKUP%"
     if errorlevel 1 (
         echo [LOI] Nhap du lieu vao ql_phong_tro that bai.
-        pause
+        %PAUSE_CMD%
         exit /b 1
     )
     echo       Da sao chep xong. File sao luu: %BACKUP%
@@ -116,7 +117,7 @@ if "%HAS_NEW%"=="1" (
     "%MYSQL%" -u root --default-character-set=utf8mb4 ql_phong_tro < "backend\database\ql_phong_tro.sql"
     if errorlevel 1 (
         echo [LOI] Nhap file ql_phong_tro.sql that bai.
-        pause
+        %PAUSE_CMD%
         exit /b 1
     )
 )
@@ -125,13 +126,13 @@ echo [4/4] Cap nhat cot va bang moi, co the chay lai nhieu lan...
 "%MYSQL%" -u root --default-character-set=utf8mb4 ql_phong_tro < "backend\database\migrations\migration_columns.sql"
 if errorlevel 1 (
     echo [LOI] migration_columns.sql that bai.
-    pause
+    %PAUSE_CMD%
     exit /b 1
 )
 "%MYSQL%" -u root --default-character-set=utf8mb4 ql_phong_tro < "backend\database\migrations\upgrade_roommate_requests.sql"
 if errorlevel 1 (
     echo [LOI] upgrade_roommate_requests.sql that bai.
-    pause
+    %PAUSE_CMD%
     exit /b 1
 )
 
@@ -143,4 +144,4 @@ echo ------------------ KET QUA ------------------
 echo.
 echo XONG. Quay lai trinh duyet va bam F5.
 echo.
-pause
+%PAUSE_CMD%

@@ -41,6 +41,11 @@ if errorlevel 1 (
     echo [1/3] MySQL dang chay san.
 )
 
+rem --- 1b. Sua database (tao ql_phong_tro neu chua co + chay migration, chay lai nhieu lan van an toan) ---
+echo [1b] Kiem tra va sua database...
+call "%~dp0Database.bat" nopause
+cd /d "%~dp0"
+
 rem --- 2. May chu PHP ---
 netstat -ano | findstr /R /C:":%PORT% .*LISTENING" >nul
 if errorlevel 1 (
@@ -58,6 +63,6 @@ start "" "http://localhost:%PORT%/index.php"
 echo.
 echo XONG. Co 2 cua so nho: "MySQL" (thu nho o thanh tac vu) va "PHP SERVER". Dung dong chung khi dang dung app.
 echo Neu trang bao loi ket noi database: doi vai giay roi bam F5.
-echo Dung xong: dong cua so "PHP SERVER" (tat app), va chay DungUngDung.bat de tat MySQL.
+echo Dung xong: dong cua so "PHP SERVER" (tat app), va chay TAT_MYSQL.bat de tat MySQL.
 echo.
 pause

@@ -129,7 +129,10 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
 .form-control{width:100%;background:rgba(255,255,255,.04);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;font-family:inherit;color:var(--text);outline:none;transition:border-color .2s,background .2s,box-shadow .2s;}
 .form-control::placeholder{color:var(--text3);}
 .form-control:focus{border-color:rgba(79,142,247,.5);background:rgba(79,142,247,.04);box-shadow:0 0 0 3px rgba(79,142,247,.08);}
-select.form-control{-webkit-appearance:none;cursor:pointer;}
+select.form-control{-webkit-appearance:none;cursor:pointer;color-scheme:dark;}
+select option,select optgroup{background:var(--bg2);color:var(--text);}
+select option:checked{background:var(--accent);color:#fff;}
+select option:disabled{color:var(--text3);}
 textarea.form-control{resize:vertical;min-height:80px;}
 /* STAT GRID */
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
