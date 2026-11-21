@@ -13,7 +13,7 @@ $nuocTieuThu = max(0, $hd['chi_so_nuoc_moi'] - $hd['chi_so_nuoc_cu']);
 // QR URL
 $qrInfo = 'TT phong ' . ($phong['so_phong'] ?? '') . ' T' . $hd['thang'] . '/' . $hd['nam'];
 $qrUrl  = 'https://img.vietqr.io/image/' . BANK_ID . '-' . BANK_ACCOUNT . '-' . VIETQR_TEMPLATE . '.jpg'
-         . '?amount=' . (int)$hd['tong_tien']
+         . '?amount=' . (int)round((float)$hd['tong_tien'])
          . '&addInfo=' . urlencode($qrInfo)
          . '&accountName=' . urlencode(BANK_NAME);
 

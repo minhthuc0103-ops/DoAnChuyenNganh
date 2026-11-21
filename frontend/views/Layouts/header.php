@@ -6,6 +6,7 @@
 <title><?= htmlspecialchars($title ?? 'RoomManager') ?> — Quản lý phòng trọ</title>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="frontend/assets/css/layouts-header.css">
+<?php require 'frontend/views/Layouts/pwa_head.php'; ?>
 </head>
 <body>
 
@@ -23,6 +24,7 @@
     $__soOCungChoDuyet = $__role === 'user'
       ? (new YeuCauNguoiOCungModel())->countPendingByUser((int)($_SESSION['user_id'] ?? 0))
       : (new YeuCauNguoiOCungModel())->countPending();
+    $__soCanhBao = in_array($__role, ['quan_ly', 'chu_tro'], true) ? (new CanhBaoModel())->countCanChuY() : 0;
     $__soTraPhongChoDuyet = $__role === 'user'
       ? (new BanGiaoModel())->countPendingTraPhongByUser((int)($_SESSION['user_id'] ?? 0))
       : (new BanGiaoModel())->countPendingTraPhong();
@@ -67,7 +69,7 @@
     </a>
     <a class="nav-item <?= (($_GET['controller']??'')==='thongbao')?'active':'' ?>"
        href="index.php?controller=thongbao&action=index">
-      <div class="nav-icon">📢</div>bảo trì
+      <div class="nav-icon">📢</div>Bảo trì
     </a>
     <a class="nav-item <?= (($_GET['controller']??'')==='chat')?'active':'' ?>"
        href="index.php?controller=chat&action=index">
@@ -119,7 +121,7 @@
 
     <a class="nav-item <?= (($_GET['controller']??'')==='hoadon')?'active':'' ?>"
        href="index.php?controller=hoadon&action=index">
-      <div class="nav-icon">💵</div>Tổng chi phí
+      <div class="nav-icon">💵</div>Hóa đơn
     </a>
 
     <a class="nav-item <?= (($_GET['controller']??'')==='hoadon' && ($_GET['action']??'')==='lichSu')?'active':'' ?>"
@@ -143,6 +145,12 @@
     <a class="nav-item <?= (($_GET['controller']??'')==='baocao')?'active':'' ?>"
        href="index.php?controller=baocao&action=index">
       <div class="nav-icon">📈</div>Báo cáo doanh thu
+    </a>
+
+    <a class="nav-item <?= (($_GET['controller']??'')==='canhbao')?'active':'' ?>"
+       href="index.php?controller=canhbao&action=index">
+      <div class="nav-icon">⚠️</div>Cảnh báo khách rời
+      <?php if ($__soCanhBao > 0): ?><span class="nav-badge nb-red"><?= $__soCanhBao ?></span><?php endif; ?>
     </a>
 
     <div class="nav-divider"></div>

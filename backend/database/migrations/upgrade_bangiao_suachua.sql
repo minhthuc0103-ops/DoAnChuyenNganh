@@ -5,15 +5,15 @@
 -- =====================================================
 USE ql_phong_tro;
 
--- 1. Bổ sung các cột cho bảng yeu_cau_sua_chua
+-- 1. Bổ sung các cột cho bảng yeu_cau_sua_chua (IF NOT EXISTS để chạy lại nhiều lần không lỗi)
 ALTER TABLE `yeu_cau_sua_chua`
-  ADD COLUMN `anh_truoc` VARCHAR(255) NULL AFTER `mo_ta`,
-  ADD COLUMN `anh_sau` VARCHAR(255) NULL AFTER `anh_truoc`,
-  ADD COLUMN `danh_muc` VARCHAR(50) DEFAULT 'khac' AFTER `vi_tri`,
-  ADD COLUMN `ai_phan_loai` TEXT NULL AFTER `danh_muc`,
-  ADD COLUMN `danh_gia_sao` TINYINT DEFAULT NULL AFTER `ghi_chu_ql`,
-  ADD COLUMN `danh_gia_nhan_xet` TEXT DEFAULT NULL AFTER `danh_gia_sao`,
-  ADD COLUMN `danh_gia_luc` DATETIME DEFAULT NULL AFTER `danh_gia_nhan_xet`;
+  ADD COLUMN IF NOT EXISTS `anh_truoc` VARCHAR(255) NULL AFTER `mo_ta`,
+  ADD COLUMN IF NOT EXISTS `anh_sau` VARCHAR(255) NULL AFTER `anh_truoc`,
+  ADD COLUMN IF NOT EXISTS `danh_muc` VARCHAR(50) DEFAULT 'khac' AFTER `vi_tri`,
+  ADD COLUMN IF NOT EXISTS `ai_phan_loai` TEXT NULL AFTER `danh_muc`,
+  ADD COLUMN IF NOT EXISTS `danh_gia_sao` TINYINT DEFAULT NULL AFTER `ghi_chu_ql`,
+  ADD COLUMN IF NOT EXISTS `danh_gia_nhan_xet` TEXT DEFAULT NULL AFTER `danh_gia_sao`,
+  ADD COLUMN IF NOT EXISTS `danh_gia_luc` DATETIME DEFAULT NULL AFTER `danh_gia_nhan_xet`;
 
 -- 2. Bảng biên bản bàn giao phòng (nhận phòng và trả phòng)
 CREATE TABLE IF NOT EXISTS `bien_ban_ban_giao` (
