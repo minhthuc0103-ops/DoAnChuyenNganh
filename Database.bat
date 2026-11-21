@@ -135,10 +135,16 @@ if errorlevel 1 (
     %PAUSE_CMD%
     exit /b 1
 )
+"%MYSQL%" -u root --default-character-set=utf8mb4 ql_phong_tro < "backend\database\migrations\upgrade_bangiao_suachua.sql"
+if errorlevel 1 (
+    echo [LOI] upgrade_bangiao_suachua.sql that bai.
+    %PAUSE_CMD%
+    exit /b 1
+)
 
 echo.
 echo ------------------ KET QUA ------------------
-"%MYSQL%" -u root -N -e "SELECT CONCAT('So bang trong ql_phong_tro: ', COUNT(*), '   mong doi 20') FROM information_schema.tables WHERE table_schema='ql_phong_tro'"
+"%MYSQL%" -u root -N -e "SELECT CONCAT('So bang trong ql_phong_tro: ', COUNT(*), '   mong doi tu 22 tro len, bang hoa_don_gui do app tu tao khi chay') FROM information_schema.tables WHERE table_schema='ql_phong_tro'"
 "%MYSQL%" -u root -N -e "SELECT CONCAT('Cot account_status co hay chua: ', COUNT(*), '   mong doi 1') FROM information_schema.columns WHERE table_schema='ql_phong_tro' AND table_name='account' AND column_name='account_status'"
 "%MYSQL%" -u root -N -e "SELECT CONCAT('So tai khoan: ', COUNT(*)) FROM ql_phong_tro.account"
 echo.
