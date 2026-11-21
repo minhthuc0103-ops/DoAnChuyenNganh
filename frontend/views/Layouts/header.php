@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= htmlspecialchars($title ?? 'RoomManager') ?> — Quản lý phòng trọ</title>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="frontend/assets/css/layouts-header.css">
+<link rel="stylesheet" href="frontend/assets/css/layouts-header.css?v=<?= (int)@filemtime(__DIR__ . '/../../assets/css/layouts-header.css') ?>">
 <?php require 'frontend/views/Layouts/pwa_head.php'; ?>
 </head>
 <body>
@@ -28,6 +28,49 @@
     $__soTraPhongChoDuyet = $__role === 'user'
       ? (new BanGiaoModel())->countPendingTraPhongByUser((int)($_SESSION['user_id'] ?? 0))
       : (new BanGiaoModel())->countPendingTraPhong();
+
+    // Menu: nhóm trang "Thông báo" (danh sách, xem, soạn, sửa) khác trang "Bảo trì" (yêu cầu sửa chữa) dù cùng controller
+    $__ctl = $_GET['controller'] ?? '';
+    $__act = $_GET['action'] ?? 'index';
+    $__laTrangThongBao = $__ctl === 'thongbao' && in_array($__act, ['danhSach', 'xem', 'create', 'edit', 'docTatCa'], true);
+
+    // CHUÔNG: dữ liệu chuẩn hóa cho cả hai vai trò. Mỗi mục: icon, tieu, trich, gio, href (href do server tự dựng).
+    // Người thuê: thông báo chưa đọc mà họ được xem. Quản lý: các việc đang chờ xử lý.
+    $__chuongMuc = [];
+    $__chuongDem = 0;
+    $__tbDem = 0;
+    if ($__role === 'user') {
+        $__tbModel = new ThongBaoModel();
+        $__tbUid   = (int)($_SESSION['user_id'] ?? 0);
+        $__tbDem   = $__chuongDem = $__tbModel->countChuaDoc($__tbUid);
+        foreach ($__tbModel->getChuaDoc($__tbUid, 6) as $__tb) {
+            $__chuongMuc[] = [
+                'icon' => $__tb['loai'] === 'tien_phong' ? '💰' : '📢',
+                'tieu' => (string)$__tb['tieu_de'],
+                'trich' => trim(preg_replace('/\s+/u', ' ', (string)$__tb['noi_dung'])),
+                'gio' => date('d/m/Y H:i', strtotime($__tb['created_at'])),
+                'href' => 'index.php?controller=thongbao&action=xem&id=' . (int)$__tb['id'],
+            ];
+        }
+    } else {
+        $__dem = function (string $sql): int {
+            try { return (int)Database::getInstance()->query($sql)->fetchColumn(); } catch (\Throwable $e) { return 0; }
+        };
+        $__viec = [
+            ['🔧', 'yêu cầu sửa chữa chờ xử lý',  $__dem("SELECT COUNT(*) FROM yeu_cau_sua_chua WHERE trang_thai = 'cho_xu_ly'"), 'Người thuê báo hỏng hóc cần xử lý', 'index.php?controller=thongbao&action=index'],
+            ['🔄', 'yêu cầu chuyển phòng chờ duyệt', (int)$__soChuyenPhongChoDuyet, 'Cần duyệt hoặc từ chối', 'index.php?controller=chuyenphong&action=index'],
+            ['➕', 'yêu cầu thêm người ở cùng chờ duyệt', (int)$__soOCungChoDuyet, 'Cần duyệt hoặc từ chối', 'index.php?controller=nguoithue&action=yeuCauOCung'],
+            ['📦', 'yêu cầu trả phòng chờ kiểm tra', (int)$__soTraPhongChoDuyet, 'Kiểm tra phòng và quyết toán cọc', 'index.php?controller=bangiao&action=index'],
+            ['💰', 'hóa đơn chưa thu', $__dem("SELECT COUNT(*) FROM hoa_don WHERE trang_thai = 'chua_tt'"), 'Xem danh sách công nợ', 'index.php?controller=hoadon&action=congNo'],
+            ['⚠️', 'khách có nguy cơ rời', (int)$__soCanhBao, 'Xem cảnh báo khách rời', 'index.php?controller=canhbao&action=index'],
+        ];
+        foreach ($__viec as [$__icon, $__nhan, $__n, $__goiY, $__href]) {
+            if ($__n > 0) {
+                $__chuongDem += $__n;
+                $__chuongMuc[] = ['icon' => $__icon, 'tieu' => $__n . ' ' . $__nhan, 'trich' => $__goiY, 'gio' => '', 'href' => $__href];
+            }
+        }
+    }
   ?>
   <a class="sidebar-logo" href="<?= $__role === 'user' ? 'index.php?controller=user&action=index' : 'index.php?controller=dashboard&action=index' ?>">
     <div class="logo-box">🏠</div>
@@ -67,9 +110,14 @@
       <div class="nav-icon">📦</div>Bàn giao & Trả phòng
       <?php if ($__soTraPhongChoDuyet > 0): ?><span class="nav-badge nb-amber"><?= $__soTraPhongChoDuyet ?></span><?php endif; ?>
     </a>
-    <a class="nav-item <?= (($_GET['controller']??'')==='thongbao')?'active':'' ?>"
+    <a class="nav-item <?= ($__ctl==='thongbao' && !$__laTrangThongBao)?'active':'' ?>"
        href="index.php?controller=thongbao&action=index">
-      <div class="nav-icon">📢</div>Bảo trì
+      <div class="nav-icon">🔧</div>Bảo trì
+    </a>
+    <a class="nav-item <?= $__laTrangThongBao?'active':'' ?>"
+       href="index.php?controller=thongbao&action=danhSach">
+      <div class="nav-icon">📢</div>Thông báo
+      <?php if ($__tbDem > 0): ?><span class="nav-badge nb-red"><?= $__tbDem > 99 ? '99+' : $__tbDem ?></span><?php endif; ?>
     </a>
     <a class="nav-item <?= (($_GET['controller']??'')==='chat')?'active':'' ?>"
        href="index.php?controller=chat&action=index">
@@ -129,9 +177,14 @@
       <div class="nav-icon">📋</div>Lịch sử thanh toán
     </a>
 
-    <a class="nav-item <?= (($_GET['controller']??'')==='thongbao')?'active':'' ?>"
+    <a class="nav-item <?= ($__ctl==='thongbao' && !$__laTrangThongBao)?'active':'' ?>"
        href="index.php?controller=thongbao&action=index">
       <div class="nav-icon">🔧</div>Bảo trì
+    </a>
+
+    <a class="nav-item <?= $__laTrangThongBao?'active':'' ?>"
+       href="index.php?controller=thongbao&action=danhSach">
+      <div class="nav-icon">📢</div>Thông báo
     </a>
 
     <a class="nav-item <?= (($_GET['controller']??'')==='chat')?'active':'' ?>"
@@ -215,10 +268,54 @@
       <?php endif; ?>
     </div>
     <div class="topbar-right">
+      <?php
+        // CHUÔNG dùng chung: người thuê thấy thông báo chưa đọc, quản lý thấy các việc đang chờ xử lý (dữ liệu tính ở đầu file)
+        $__chuongTieuDe = $__role === 'user' ? 'Thông báo' : 'Cần xử lý';
+      ?>
+      <div class="tb-bell" id="tbBell">
+        <button type="button" class="icon-btn" id="tbBellBtn" aria-haspopup="true" aria-expanded="false" aria-controls="tbBellPanel"
+                title="<?= $__chuongTieuDe ?><?= $__chuongDem > 0 ? ' (' . $__chuongDem . ')' : '' ?>">🔔<?php if ($__chuongDem > 0): ?><span class="bell-count"><?= $__chuongDem > 99 ? '99+' : $__chuongDem ?></span><?php endif; ?></button>
+        <div class="notif-panel" id="tbBellPanel" hidden>
+          <div class="notif-head">
+            <span><?= $__chuongTieuDe ?><?= $__chuongDem > 0 ? ' · ' . $__chuongDem . ($__role === 'user' ? ' chưa đọc' : '') : '' ?></span>
+            <?php if ($__role === 'user' && $__chuongDem > 0): ?>
+            <form method="POST" action="index.php?controller=thongbao&action=docTatCa" style="margin:0;">
+              <?= Csrf::field() ?>
+              <button type="submit" class="notif-readall">Đánh dấu đã đọc</button>
+            </form>
+            <?php endif; ?>
+          </div>
+          <?php if (empty($__chuongMuc)): ?>
+          <div class="notif-empty"><?= $__role === 'user' ? 'Không có thông báo mới 🎉' : 'Không có việc nào cần xử lý 🎉' ?></div>
+          <?php else: foreach ($__chuongMuc as $__m):
+            $__mTieu  = htmlspecialchars(mb_strimwidth($__m['tieu'], 0, 70, '…', 'UTF-8'), ENT_QUOTES, 'UTF-8');
+            $__mTrich = htmlspecialchars(mb_strimwidth($__m['trich'], 0, 110, '…', 'UTF-8'), ENT_QUOTES, 'UTF-8');
+          ?>
+          <a class="notif-item" href="<?= htmlspecialchars($__m['href'], ENT_QUOTES, 'UTF-8') ?>">
+            <span class="notif-ico"><?= $__m['icon'] ?></span>
+            <span class="notif-body">
+              <span class="notif-title"><?= $__mTieu ?></span>
+              <span class="notif-text"><?= $__mTrich ?></span>
+              <?php if ($__m['gio'] !== ''): ?><span class="notif-time"><?= htmlspecialchars($__m['gio'], ENT_QUOTES, 'UTF-8') ?></span><?php endif; ?>
+            </span>
+          </a>
+          <?php endforeach; endif; ?>
+          <a class="notif-foot" href="index.php?controller=thongbao&action=danhSach"><?= $__role === 'user' ? 'Xem tất cả thông báo' : 'Quản lý thông báo gửi người thuê' ?> →</a>
+        </div>
+      </div>
+      <script>
+      (function () {
+        var wrap = document.getElementById('tbBell'), btn = document.getElementById('tbBellBtn'), panel = document.getElementById('tbBellPanel');
+        if (!wrap || !btn || !panel) return;
+        function dat(mo) { panel.hidden = !mo; btn.setAttribute('aria-expanded', mo ? 'true' : 'false'); }
+        btn.addEventListener('click', function (e) { e.stopPropagation(); dat(panel.hidden); });
+        document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) dat(false); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') dat(false); });
+      })();
+      </script>
       <?php if ($__role !== 'user'): ?>
       <a class="icon-btn" href="index.php?controller=nguoithue&action=yeuCauOCung" title="Yêu cầu thêm người ở cùng">➕<?php if ($__soOCungChoDuyet > 0): ?><span class="notif-dot"></span><?php endif; ?></a>
       <a class="icon-btn" href="index.php?controller=chuyenphong&action=index" title="Yêu cầu chuyển phòng">🔄<?php if ($__soChuyenPhongChoDuyet > 0): ?><span class="notif-dot"></span><?php endif; ?></a>
-      <a class="icon-btn" href="index.php?controller=hoadon&action=congNo" title="Công nợ">🔔</a>
       <a class="icon-btn" href="index.php?controller=baocao&action=index" title="Báo cáo">📊</a>
       <?php endif; ?>
       <a class="icon-btn" href="index.php?controller=auth&action=logout" title="Đăng xuất">⏻</a>
@@ -229,6 +326,7 @@
   <div class="page-content">
     <?php if(!empty($_GET['msg'])):
       $map=['created'=>['success','✓ Thêm mới thành công!'],
+            'hoadon_created'=>['success','✓ Tạo hóa đơn thành công!'],
             'updated'=>['success','✓ Cập nhật thành công!'],
             'deleted'       =>['error','✓ Đã xóa thành công!'],
           'cannot_delete' =>['error','⚠ Không thể xóa! Người thuê đang có hợp đồng hiệu lực.'],

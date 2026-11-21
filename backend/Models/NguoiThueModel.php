@@ -179,7 +179,8 @@ class NguoiThueModel {
         $s->execute([$id]);
         if ($s->fetchColumn() > 0) return false;
         $s = $this->db->prepare("DELETE FROM nguoi_thue WHERE id=?");
-        return $s->execute([$id]);
+        $s->execute([$id]);
+        return $s->rowCount() > 0;   // không có dòng nào bị xóa = thất bại, không báo thành công giả
     }
 
     // Xóa cứng - dùng khi xóa HĐ

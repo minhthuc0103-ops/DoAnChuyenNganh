@@ -4,7 +4,13 @@
   const VND_NAMES = ['gia','tien_coc','tien_phong','tien_dien','tien_nuoc'];
   const sel       = VND_NAMES.map(n => `input[name="${n}"]`).join(',');
 
-  function toNum(v)    { return parseInt(String(v).replace(/\D/g,''), 10); }
+  // DB trả tiền dạng "3000000.00" (decimal): dấu "." là thập phân, không được xóa như dấu ngăn cách nghìn,
+  // nếu không "3000000.00" thành 300000000 (gấp 100 lần) và bấm Lưu sẽ ghi sai giá.
+  function toNum(v)    {
+    const s = String(v).trim();
+    if (/^\d+\.\d{1,2}$/.test(s)) return Math.round(parseFloat(s));
+    return parseInt(s.replace(/\D/g,''), 10);
+  }
   function fmtDot(v)   { const n=toNum(v); return isNaN(n)?'':(n===0?'0':n.toLocaleString('vi-VN')); }
   function fmtVND(v)   { const d=fmtDot(v); return d ? d+' VNĐ' : ''; }
 

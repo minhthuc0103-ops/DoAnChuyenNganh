@@ -22,14 +22,14 @@
     </div>
 
     <div class="card-title">Quên mật khẩu</div>
-    <div class="card-sub">Nhập tài khoản và xác minh bằng email hoặc số điện thoại đã đăng ký</div>
+    <div class="card-sub">Nhập tên đăng nhập, mã OTP sẽ được gửi tới email đã đăng ký</div>
 
     <?php if (!empty($error)): ?>
     <div class="alert-error"><span>⚠</span> <?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
 
     <div class="info-box">
-      <p>💡 Nhập đúng <strong>tên đăng nhập</strong> và <strong>email</strong> hoặc <strong>số điện thoại</strong> đã đăng ký để xác minh danh tính.</p>
+      <p>💡 Mã OTP gồm 6 số, gửi tới <strong>email đã đăng ký</strong> của tài khoản và có hiệu lực 1 phút.</p>
     </div>
 
     <form method="POST" action="index.php?controller=auth&action=forgotPassword">
@@ -44,31 +44,7 @@
         </div>
       </div>
 
-      <div class="divider">
-        <div class="div-line"></div>
-        <span class="div-txt">Xác minh bằng 1 trong 2</span>
-        <div class="div-line"></div>
-      </div>
-
-      <div class="field">
-        <label>Email đã đăng ký</label>
-        <div class="input-wrap">
-          <input type="email" name="email" placeholder="email@example.com"
-                 value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"/>
-          <span class="ic">📧</span>
-        </div>
-      </div>
-
-      <div class="field">
-        <label>Hoặc số điện thoại</label>
-        <div class="input-wrap">
-          <input type="tel" name="sdt" placeholder="0xxx xxx xxx"
-                 value="<?= htmlspecialchars($_POST['sdt'] ?? '') ?>"/>
-          <span class="ic">📱</span>
-        </div>
-      </div>
-
-      <button type="submit" class="btn-submit">🔓 Xác minh & Đặt lại mật khẩu</button>
+      <button type="submit" class="btn-submit">📧 Gửi mã OTP</button>
 
     </form>
 

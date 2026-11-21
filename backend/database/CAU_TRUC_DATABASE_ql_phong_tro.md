@@ -369,7 +369,7 @@ Các bảng này tự tạo, không cần nhập file SQL.
 | Cột | Kiểu | Null | Khóa | Mặc định | Ghi chú |
 |---|---|---|---|---|---|
 | `id` | int(11) | không | PRI |  | auto_increment |
-| `user_id` | int(11) | không |  |  |  |
+| `user_id` | int(11) | không |  |  |  git|
 | `ho_ten` | varchar(100) | có |  | '' |  |
 | `phong` | varchar(50) | có |  | '' |  |
 | `vi_tri` | varchar(200) | không |  |  |  |

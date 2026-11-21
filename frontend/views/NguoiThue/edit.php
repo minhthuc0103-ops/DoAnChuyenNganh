@@ -11,8 +11,8 @@ require_once 'frontend/views/Layouts/header.php';
     <div class="card-header"><div class="card-title">Thông tin cá nhân</div></div>
     <div class="card-body">
       <?php if(!empty($error)): ?><div class="msg-alert msg-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-      <form method="POST" action="index.php?controller=nguoithue&action=edit&id=<?= $data['id'] ?>
-            <?= Csrf::field() ?>" enctype="multipart/form-data">
+      <form method="POST" action="index.php?controller=nguoithue&action=edit&id=<?= $data['id'] ?>" enctype="multipart/form-data">
+            <?= Csrf::field() ?>
 
         <!-- AVATAR UPLOAD -->
         <div class="form-group" style="display:flex;align-items:center;gap:16px;padding:14px;background:var(--bg3);border-radius:12px;border:1px solid var(--border);margin-bottom:20px;">
@@ -76,11 +76,11 @@ require_once 'frontend/views/Layouts/header.php';
         <div style="display:flex;gap:10px;padding-top:4px;">
           <button type="submit" class="btn btn-primary">💾 Cập nhật</button>
           <a href="index.php?controller=nguoithue&action=index" class="btn btn-outline">Hủy</a>
-          <form method="POST" action="index.php?controller=nguoithue&action=delete" style="display:inline;margin-left:auto" onsubmit="return confirm('Xóa người thuê này?')">
-            <?= Csrf::field() ?><input type="hidden" name="id" value="<?= $data['id'] ?>">
-            <button type="submit" class="btn btn-danger" style="cursor:pointer">🗑 Xóa</button>
-          </form>
+          <button type="submit" form="formXoaNguoiThue" class="btn btn-danger" style="cursor:pointer;margin-left:auto">🗑 Xóa</button>
         </div>
+      </form>
+      <form id="formXoaNguoiThue" method="POST" action="index.php?controller=nguoithue&action=delete" onsubmit="return confirm('Xóa người thuê này?')">
+        <?= Csrf::field() ?><input type="hidden" name="id" value="<?= $data['id'] ?>">
       </form>
     </div>
   </div>

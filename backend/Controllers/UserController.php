@@ -16,7 +16,9 @@ class UserController {
 
         $hoa_don_list = [];
         $phong_nguoi  = [];
-        $thong_bao_list = (new ThongBaoModel())->getChuaDoc($account_id, 5);
+        $tbModel        = new ThongBaoModel();
+        $thong_bao_list = $tbModel->getChuaDoc($account_id, 5);
+        $so_chua_doc    = $tbModel->countChuaDoc($account_id);   // tổng thật, không phải số dòng của danh sách 5 tin
 
         if ($nguoi_thue && !empty($nguoi_thue['hop_dong_id'])) {
             $hoa_don_list = $this->hoaDonModel->getByPhongId((int)$nguoi_thue['phong_id']);

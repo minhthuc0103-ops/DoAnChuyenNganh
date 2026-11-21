@@ -78,7 +78,12 @@ class HoaDonController {
                 ]);
                 if ($created) {
                     $hoaDonId = $this->model->getLastInsertId();
-                    $this->taoThongBaoDongTien($phong_id, $p['so_phong'] ?? '', $thang, $nam, $tong_tien, $hoaDonId);
+                    // Hóa đơn đã lưu rồi: lỗi tạo thông báo chỉ ghi nhật ký, không được làm trang báo lỗi 500
+                    try {
+                        $this->taoThongBaoDongTien($phong_id, $p['so_phong'] ?? '', $thang, $nam, $tong_tien, $hoaDonId);
+                    } catch (\Throwable $e) {
+                        error_log('Tao thong bao hoa don loi: ' . $e->getMessage());
+                    }
                     // Tự gửi hóa đơn qua Gmail / Zalo. Gửi lỗi chỉ ghi nhật ký, không làm hỏng việc tạo hóa đơn.
                     try {
                         HoaDonThongBao::guiHoaDon($hoaDonId, true);
@@ -86,12 +91,10 @@ class HoaDonController {
                         error_log('Gui hoa don tu dong loi: ' . $e->getMessage());
                     }
                 }
-                // Tạo xong thì mở luôn trang QR (đã điền sẵn đúng số tiền) của hóa đơn vừa tạo để đưa cho người thuê quét
-                if ($created && !empty($hoaDonId)) {
-                    header('Location: index.php?controller=hoadon&action=thanhToan&id=' . (int)$hoaDonId . '&msg=created');
-                } else {
-                    header('Location: index.php?controller=hoadon&action=index&msg=created');
-                }
+                // Quản lý: tạo xong chỉ báo thành công rồi về danh sách hóa đơn của tháng đó.
+                // Người thuê nhận thông báo ở chuông, bấm vào là thấy chi tiết hóa đơn kèm phương thức thanh toán.
+                header('Location: index.php?controller=hoadon&action=index&thang=' . (int)$thang . '&nam=' . (int)$nam
+                       . '&msg=' . ($created ? 'hoadon_created' : 'created'));
                 exit;
             }
         }
@@ -119,17 +122,16 @@ class HoaDonController {
         $nguoiNhan = array_map('intval', $s->fetchAll(PDO::FETCH_COLUMN));
         if (empty($nguoiNhan)) return;
 
-        $tieuDe = "Thong bao dong tien phong $so_phong thang $thang/$nam";
-        $noiDung = "Hoa don phong $so_phong thang $thang/$nam da duoc tao.\n"
-                 . "Tong tien can thanh toan: " . number_format($tong_tien, 0, ',', '.') . "d\n"
-                 . "Vui long thanh toan trong han 01-05 hang thang.\n\n"
-                 . "Xem chi tiet/tai QR thanh toan tai: index.php?controller=hoadon&action=chiTiet&id=$hoa_don_id";
+        $tieuDe = "Hóa đơn phòng $so_phong tháng $thang/$nam";
+        $noiDung = "Hóa đơn phòng $so_phong tháng $thang/$nam đã được tạo.\n"
+                 . "Tổng tiền cần thanh toán: " . number_format($tong_tien, 0, ',', '.') . "đ\n"
+                 . "Vui lòng thanh toán trong hạn 01-05 hàng tháng.\n\n"
+                 . "Bấm vào thông báo để xem chi tiết hóa đơn và chọn phương thức thanh toán.";
 
-        $tbModel = new ThongBaoModel();
-        $tbId = $tbModel->createAndGetId($tieuDe, $noiDung, 'tien_phong', $_SESSION['ho_ten'] ?? $_SESSION['user'] ?? 'Admin');
-        if ($tbId) {
-            $tbModel->anVoiTatCaTruNguoiNhan($tbId, $nguoiNhan);
-        }
+        // Thông báo RIÊNG: chỉ những người đang thuê phòng này thấy (lưu người nhận, không còn đánh dấu đã đọc cho người khác)
+        (new ThongBaoModel())->createRieng(
+            $tieuDe, $noiDung, 'tien_phong', $_SESSION['ho_ten'] ?? $_SESSION['user'] ?? 'Admin', $nguoiNhan, $hoa_don_id
+        );
     }
 
     // AJAX: lấy danh sách phòng theo khu
