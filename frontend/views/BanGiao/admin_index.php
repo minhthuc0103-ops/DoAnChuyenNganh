@@ -256,11 +256,10 @@ $statusMap = [
                class="btn btn-outline" style="font-size:12px;padding:5px 10px;">
               🖨 In
             </a>
-            <a href="index.php?controller=bangiao&action=xoaBienBan&id=<?=$bb['id']?>"
-               onclick="return confirm('Bạn có chắc chắn muốn xóa biên bản này?')"
-               class="btn btn-outline" style="font-size:12px;padding:5px 10px;color:var(--red);">
-              🗑 Xóa
-            </a>
+            <form method="POST" action="index.php?controller=bangiao&action=xoaBienBan" style="display:inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa biên bản này?')">
+              <?= Csrf::field() ?><input type="hidden" name="id" value="<?=$bb['id']?>">
+              <button type="submit" class="btn btn-outline" style="font-size:12px;padding:5px 10px;color:var(--red);cursor:pointer">🗑 Xóa</button>
+            </form>
           </td>
         </tr>
         <?php endforeach; ?>

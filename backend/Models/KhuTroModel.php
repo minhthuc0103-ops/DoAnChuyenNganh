@@ -69,7 +69,8 @@ class KhuTroModel {
 
     public function delete(int $id): bool {
         $s = $this->db->prepare("DELETE FROM khu_tro WHERE id=?");
-        return $s->execute([$id]);
+        $s->execute([$id]);
+        return $s->rowCount() > 0;
     }
 
     public function getLastInsertId(): int {

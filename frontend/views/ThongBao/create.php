@@ -9,7 +9,7 @@ require_once 'frontend/views/Layouts/header.php';
     <h1><?= $isEdit ? '✏ Sửa thông báo' : '📢 Tạo thông báo mới' ?></h1>
     <p><?= $isEdit ? 'Chỉnh sửa nội dung' : 'Gửi thông báo đến tất cả người thuê' ?></p>
   </div>
-  <a href="index.php?controller=thongbao&action=index" class="btn btn-outline">← Quay lại</a>
+  <a href="index.php?controller=thongbao&action=danhSach" class="btn btn-outline">← Quay lại</a>
 </div>
 
 <div style="max-width:640px;">
@@ -70,7 +70,7 @@ require_once 'frontend/views/Layouts/header.php';
           <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;">
             <?= $isEdit ? '💾 Cập nhật' : '📢 Gửi thông báo' ?>
           </button>
-          <a href="index.php?controller=thongbao&action=index" class="btn btn-outline">Hủy</a>
+          <a href="index.php?controller=thongbao&action=danhSach" class="btn btn-outline">Hủy</a>
         </div>
       </form>
     </div>

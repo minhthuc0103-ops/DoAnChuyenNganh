@@ -19,8 +19,8 @@ require_once 'frontend/views/Layouts/header.php';
       <div class="msg-alert msg-error"><?= htmlspecialchars($error) ?></div>
       <?php endif; ?>
 
-      <form method="POST" action="index.php?controller=phong&action=edit&id=<?= $phong['id'] ?>
-            <?= Csrf::field() ?>" enctype="multipart/form-data">
+      <form method="POST" action="index.php?controller=phong&action=edit&id=<?= $phong['id'] ?>" enctype="multipart/form-data">
+            <?= Csrf::field() ?>
 
         <!-- ẢNH PHÒNG (nhiều ảnh) -->
         <div class="form-group">
@@ -141,12 +141,11 @@ require_once 'frontend/views/Layouts/header.php';
         <div style="display:flex;gap:10px;padding-top:4px;">
           <button type="submit" class="btn btn-primary">💾 Cập nhật</button>
           <a href="index.php?controller=phong&action=index" class="btn btn-outline">Hủy</a>
-          <form method="POST" action="index.php?controller=phong&action=delete" style="display:inline;" onsubmit="return confirm('Xóa phòng này?')">
-            <?= Csrf::field() ?>
-            <input type="hidden" name="id" value="<?= $phong['id'] ?>">
-            <button type="submit" class="btn btn-danger btn-xs" style="cursor:pointer;">🗑 Xóa phòng</button>
-          </form>
+          <button type="submit" form="formXoaPhong" class="btn btn-danger btn-xs" style="cursor:pointer;">🗑 Xóa phòng</button>
         </div>
+      </form>
+      <form id="formXoaPhong" method="POST" action="index.php?controller=phong&action=delete" onsubmit="return confirm('Xóa phòng này?')">
+        <?= Csrf::field() ?><input type="hidden" name="id" value="<?= $phong['id'] ?>">
       </form>
     </div>
   </div>

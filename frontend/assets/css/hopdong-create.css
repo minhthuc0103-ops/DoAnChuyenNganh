@@ -7,3 +7,16 @@
 .sig-hint span:last-child{font-size:13px;}
 .oc-block{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:18px 18px 14px;margin-bottom:12px;position:relative;}
 .oc-num{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;}
+
+/* Gợi ý tên người ở cùng (Bước 3): hiện khi bấm vào ô Họ và tên */
+.oc-suggest-wrap{position:relative;}
+.oc-suggest{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:var(--card);border:1px solid rgba(79,142,247,.3);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.45);max-height:260px;overflow-y:auto;display:none;}
+.oc-suggest.open{display:block;}
+.oc-suggest-head{padding:8px 12px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
+.oc-suggest-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:transparent;border:0;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text);font-family:inherit;text-align:left;cursor:pointer;}
+.oc-suggest-item:last-child{border-bottom:0;}
+.oc-suggest-item:hover,.oc-suggest-item.active{background:rgba(79,142,247,.12);}
+.oc-suggest-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.oc-suggest-name{font-size:13px;font-weight:700;}
+.oc-suggest-meta{font-size:11px;color:var(--text2);margin-top:1px;}
+.oc-suggest-empty{padding:12px;font-size:12px;color:var(--text2);text-align:center;}

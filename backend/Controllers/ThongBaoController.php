@@ -357,10 +357,29 @@ class ThongBaoController
         exit;
     }
 
+    /** Loại thông báo hợp lệ (dùng để lọc danh sách và kiểm tra dữ liệu gửi lên). */
+    private const DS_LOAI = ['chung', 'khan_cap', 'bao_tri', 'tien_phong', 'khac'];
+
+    /** Danh sách thông báo: dùng chung cho quản lý và người thuê (quản lý thấy tất cả + quản lý; người thuê chỉ thấy phần của mình). */
+    public function danhSach()
+    {
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        $laAdmin = $this->isAdmin();
+        $loaiLoc = $_GET['loai'] ?? '';
+        if (!in_array($loaiLoc, self::DS_LOAI, true)) $loaiLoc = null;
+        $gioiHan = 100;
+        $thongBaoList = $laAdmin
+            ? $this->model->getAll($gioiHan, $loaiLoc)
+            : $this->model->getDanhSachChoNguoiDung($userId, $gioiHan, $loaiLoc);
+        $soChuaDoc = $laAdmin ? 0 : $this->model->countChuaDoc($userId);
+        $title = 'Thông báo';
+        require 'frontend/views/ThongBao/danh_sach.php';
+    }
+
     public function create()
     {
         if (!$this->isAdmin()) {
-            header('Location: index.php?controller=thongbao&action=index');
+            header('Location: index.php?controller=thongbao&action=danhSach');
             exit;
         }
         $title = 'Tạo thông báo mới';
@@ -369,14 +388,14 @@ class ThongBaoController
             Csrf::check();
             $tieu_de  = trim($_POST['tieu_de'] ?? '');
             $noi_dung = trim($_POST['noi_dung'] ?? '');
-            $loai     = $_POST['loai'] ?? 'chung';
+            $loai     = in_array($_POST['loai'] ?? '', self::DS_LOAI, true) ? $_POST['loai'] : 'chung';
             $ghim     = isset($_POST['ghim']);
             if (!$tieu_de || !$noi_dung) {
                 $error = 'Vui lòng nhập tiêu đề và nội dung!';
             } else {
                 $nguoi_gui = $_SESSION['ho_ten'] ?? $_SESSION['user'] ?? 'Admin';
                 $this->model->create($tieu_de, $noi_dung, $loai, $nguoi_gui, $ghim);
-                header('Location: index.php?controller=thongbao&action=index&msg=created');
+                header('Location: index.php?controller=thongbao&action=danhSach&msg=created');
                 exit;
             }
         }
@@ -389,10 +408,25 @@ class ThongBaoController
         $userId = (int)($_SESSION['user_id'] ?? 0);
         $tb     = $this->model->getById($id);
         if (!$tb) {
-            header('Location: index.php?controller=thongbao&action=index');
+            header('Location: index.php?controller=thongbao&action=danhSach');
             exit;
         }
+        $laNguoiThue = !$this->isAdmin();
+
+        // Người thuê chỉ xem được thông báo chung và thông báo riêng gửi cho mình (gõ id trực tiếp cũng bị chặn)
+        if ($laNguoiThue && !$this->model->coQuyenXem($tb, $userId)) {
+            header('Location: index.php?controller=thongbao&action=danhSach');
+            exit;
+        }
+
         $this->model->danhDauDaDoc($id, $userId);
+
+        // Thông báo hóa đơn: bấm vào là mở thẳng chi tiết hóa đơn (có phương thức thanh toán)
+        if ($laNguoiThue && !empty($tb['hoa_don_id'])) {
+            header('Location: index.php?controller=hoadon&action=chiTiet&id=' . (int)$tb['hoa_don_id']);
+            exit;
+        }
+
         $title = $tb['tieu_de'];
         require 'frontend/views/ThongBao/xem.php';
     }
@@ -400,13 +434,13 @@ class ThongBaoController
     public function edit()
     {
         if (!$this->isAdmin()) {
-            header('Location: index.php?controller=thongbao&action=index');
+            header('Location: index.php?controller=thongbao&action=danhSach');
             exit;
         }
         $id = (int)($_GET['id'] ?? 0);
         $tb = $this->model->getById($id);
         if (!$tb) {
-            header('Location: index.php?controller=thongbao&action=index');
+            header('Location: index.php?controller=thongbao&action=danhSach');
             exit;
         }
         $title = 'Sửa thông báo';
@@ -415,48 +449,55 @@ class ThongBaoController
             Csrf::check();
             $tieu_de  = trim($_POST['tieu_de'] ?? '');
             $noi_dung = trim($_POST['noi_dung'] ?? '');
-            $loai     = $_POST['loai'] ?? 'chung';
+            $loai     = in_array($_POST['loai'] ?? '', self::DS_LOAI, true) ? $_POST['loai'] : 'chung';
             $ghim     = isset($_POST['ghim']);
             if (!$tieu_de || !$noi_dung) {
                 $error = 'Vui lòng nhập tiêu đề và nội dung!';
             } else {
                 $this->model->update($id, $tieu_de, $noi_dung, $loai, $ghim);
-                header('Location: index.php?controller=thongbao&action=index&msg=updated');
+                header('Location: index.php?controller=thongbao&action=danhSach&msg=updated');
                 exit;
             }
         }
         require 'frontend/views/ThongBao/create.php';
     }
 
+    /** Xóa thông báo: chỉ quản lý, chỉ POST + CSRF (GET chỉ quay về danh sách, không làm gì). */
     public function delete()
     {
-        if (!$this->isAdmin()) {
-            header('Location: index.php?controller=thongbao&action=index');
+        if (!$this->isAdmin() || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?controller=thongbao&action=danhSach');
             exit;
         }
-        $id = (int)($_GET['id'] ?? 0);
-        $this->model->delete($id);
-        header('Location: index.php?controller=thongbao&action=index&msg=deleted');
+        Csrf::check();
+        $this->model->delete((int)($_POST['id'] ?? 0));
+        header('Location: index.php?controller=thongbao&action=danhSach&msg=deleted');
         exit;
     }
 
+    /** Ghim / bỏ ghim: chỉ quản lý, chỉ POST + CSRF. */
     public function ghim()
     {
-        if (!$this->isAdmin()) {
-            header('Location: index.php?controller=thongbao&action=index');
+        if (!$this->isAdmin() || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?controller=thongbao&action=danhSach');
             exit;
         }
-        $id = (int)($_GET['id'] ?? 0);
-        $this->model->toggleGhim($id);
-        header('Location: index.php?controller=thongbao&action=index&msg=updated');
+        Csrf::check();
+        $this->model->toggleGhim((int)($_POST['id'] ?? 0));
+        header('Location: index.php?controller=thongbao&action=danhSach&msg=updated');
         exit;
     }
 
+    /** Đánh dấu đã đọc mọi thông báo mình được thấy: POST + CSRF, điểm đến cố định (không dùng Referer). */
     public function docTatCa()
     {
-        $userId = (int)($_SESSION['user_id'] ?? 0);
-        $this->model->docTatCa($userId);
-        header('Location: index.php?controller=thongbao&action=index&msg=updated');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?controller=thongbao&action=danhSach');
+            exit;
+        }
+        Csrf::check();
+        $this->model->docTatCa((int)($_SESSION['user_id'] ?? 0));
+        header('Location: index.php?controller=thongbao&action=danhSach&msg=updated');
         exit;
     }
 

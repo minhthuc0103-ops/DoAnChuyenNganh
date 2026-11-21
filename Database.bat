@@ -141,6 +141,18 @@ if errorlevel 1 (
     %PAUSE_CMD%
     exit /b 1
 )
+"%MYSQL%" -u root --default-character-set=utf8mb4 ql_phong_tro < "backend\database\migrations\upgrade_thongbao_hoadon.sql"
+if errorlevel 1 (
+    echo [LOI] upgrade_thongbao_hoadon.sql that bai.
+    %PAUSE_CMD%
+    exit /b 1
+)
+"%MYSQL%" -u root --default-character-set=utf8mb4 ql_phong_tro < "backend\database\migrations\upgrade_google_login.sql"
+if errorlevel 1 (
+    echo [LOI] upgrade_google_login.sql that bai.
+    %PAUSE_CMD%
+    exit /b 1
+)
 
 echo.
 echo ------------------ KET QUA ------------------

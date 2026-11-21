@@ -14,8 +14,8 @@ require_once 'frontend/views/Layouts/header.php';
     <div class="card-header"><div class="card-title">Thông tin người thuê chung</div></div>
     <div class="card-body">
       <?php if(!empty($error)): ?><div class="msg-alert msg-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-      <form method="POST" action="index.php?controller=hopdong&action=themNguoi&id=<?= $hd['id']??0 ?>
-            <?= Csrf::field() ?>" enctype="multipart/form-data">
+      <form method="POST" action="index.php?controller=hopdong&action=themNguoi&id=<?= $hd['id']??0 ?>" enctype="multipart/form-data">
+            <?= Csrf::field() ?>
 
         <!-- Avatar -->
         <div class="form-group" style="display:flex;align-items:center;gap:16px;padding:14px;background:var(--bg3);border-radius:12px;border:1px solid var(--border);margin-bottom:20px;">

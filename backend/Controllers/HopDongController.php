@@ -46,6 +46,41 @@ class HopDongController {
              ORDER BY nt.ho_ten"
         );
         $nguoiThueList = $stmtNT->fetchAll();
+
+        // Gợi ý tên cho Bước 3 (người ở cùng): người CHƯA có hợp đồng nào đang hiệu lực,
+        // kể cả với tư cách người ở cùng. Một người có thể bị lặp nhiều bản ghi trong nguoi_thue
+        // nên coi là cùng người nếu trùng CCCD hoặc SĐT với người đã có hợp đồng, rồi gộp trùng.
+        $daCoHD = $db->query(
+            "SELECT cccd, sdt FROM nguoi_thue_phong p
+             JOIN hop_dong h ON h.id = p.hop_dong_id AND h.trang_thai = 'hieu_luc'"
+        )->fetchAll();
+        $cccdCoHD = $sdtCoHD = [];
+        foreach ($daCoHD as $r) {
+            if (trim((string)$r['cccd']) !== '') $cccdCoHD[trim($r['cccd'])] = true;
+            if (trim((string)$r['sdt'])  !== '') $sdtCoHD[trim($r['sdt'])]   = true;
+        }
+        $ungVienOCung = [];
+        $daThayCccd = $daThaySdt = $daThayId = [];
+        foreach ($nguoiThueList as $nt) {
+            $cccd = trim((string)($nt['cccd'] ?? ''));
+            $sdt  = trim((string)($nt['sdt']  ?? ''));
+            if (($cccd !== '' && isset($cccdCoHD[$cccd])) || ($sdt !== '' && isset($sdtCoHD[$sdt]))) continue;
+            // gộp trùng: cùng CCCD hoặc cùng SĐT với người đã đưa vào danh sách thì bỏ
+            if (($cccd !== '' && isset($daThayCccd[$cccd])) || ($sdt !== '' && isset($daThaySdt[$sdt]))) continue;
+            if ($cccd === '' && $sdt === '' && isset($daThayId[$nt['id']])) continue;
+            if ($cccd !== '') $daThayCccd[$cccd] = true;
+            if ($sdt  !== '') $daThaySdt[$sdt]   = true;
+            $daThayId[$nt['id']] = true;
+            $ungVienOCung[] = [
+                'id'        => (int)$nt['id'],
+                'ho_ten'    => (string)$nt['ho_ten'],
+                'cccd'      => $cccd,
+                'sdt'       => $sdt,
+                'ngay_sinh' => (string)($nt['ngay_sinh'] ?? ''),
+                'gioi_tinh' => in_array($nt['gioi_tinh'] ?? '', ['nam', 'nu', 'khac'], true) ? $nt['gioi_tinh'] : 'nam',
+            ];
+        }
+
         $accountList = $db->query(
             "SELECT id, username, ho_ten, sdt, email
              FROM account
@@ -286,8 +321,17 @@ class HopDongController {
     }
 
     public function delete() {
-        $id = (int)($_GET['id'] ?? 0);
-        $hd = $this->model->getById($id);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?controller=hopdong&action=index');
+            exit;
+        }
+        Csrf::check();
+        $id = (int)($_POST['id'] ?? 0);
+        $hd = $id > 0 ? $this->model->getById($id) : null;
+        if (!$hd) {
+            header('Location: index.php?controller=hopdong&action=index');   // không có hợp đồng này → không báo "đã xóa" giả
+            exit;
+        }
         if ($hd) {
             if ($hd['trang_thai'] === 'hieu_luc') {
                 // Xóa HĐ hiệu lực → phòng về trống

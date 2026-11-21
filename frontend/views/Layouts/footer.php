@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
-<script src="frontend/assets/js/layouts-footer.js"></script>
+<script src="frontend/assets/js/layouts-footer.js?v=<?= (int)@filemtime(__DIR__ . '/../../assets/js/layouts-footer.js') ?>"></script>
 <script src="frontend/assets/js/layouts-footer-2.js"></script>
 <script src="frontend/assets/js/layouts-footer-3.js"></script>
 

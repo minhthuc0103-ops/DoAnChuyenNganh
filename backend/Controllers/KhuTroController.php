@@ -55,9 +55,14 @@ class KhuTroController {
     }
 
     public function delete() {
-        $id = (int)($_GET['id'] ?? 0);
-        $this->model->delete($id);
-        header('Location: index.php?controller=khutro&action=index&msg=deleted');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?controller=khutro&action=index');
+            exit;
+        }
+        Csrf::check();
+        $id = (int)($_POST['id'] ?? 0);
+        $ok = $id > 0 && $this->model->delete($id);
+        header('Location: index.php?controller=khutro&action=index' . ($ok ? '&msg=deleted' : ''));
         exit;
     }
 

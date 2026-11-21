@@ -192,7 +192,12 @@ class BanGiaoController
             exit;
         }
 
-        $id = (int)($_GET['id'] ?? 0);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?controller=bangiao&action=index&tab=ban_giao');
+            exit;
+        }
+        Csrf::check();
+        $id = (int)($_POST['id'] ?? 0);
         if ($id > 0) {
             $this->model->deleteBienBan($id);
         }

@@ -15,3 +15,6 @@ public/uploads/signatures/
 
 # File sao lưu database (chứa dữ liệu thật)
 *_backup.sql
+
+# Khóa đăng nhập Google — KHÔNG đưa lên Git
+backend/config/google.local.php

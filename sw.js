@@ -2,7 +2,7 @@
  * Nguyên tắc: trang PHP (có session, CSRF, dữ liệu cá nhân, ảnh CCCD) KHÔNG BAO GIỜ được cache.
  * Chỉ cache file tĩnh trong frontend/assets/. Mất mạng -> hiện offline.html.
  * Đổi VERSION khi muốn ép trình duyệt xoá cache cũ. */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = 'roommanager-static-' + VERSION;
 const OFFLINE_URL = 'offline.html';
 // Ngoài offline.html (bắt buộc), file nào tải lỗi thì bỏ qua: addAll() hỏng cả lô chỉ vì 1 file 404
