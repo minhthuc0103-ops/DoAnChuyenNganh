@@ -1,0 +1,5 @@
+/* Trạng thái gửi hóa đơn (email / Zalo) trong danh sách hóa đơn */
+.hd-gui{font-size:11px;margin-top:4px;color:var(--text3);white-space:nowrap}
+.hd-gui-thanh_cong{color:var(--green)}
+.hd-gui-that_bai{color:var(--red);font-weight:700}
+.hd-gui-bo_qua{color:var(--amber)}

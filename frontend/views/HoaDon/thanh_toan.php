@@ -3,7 +3,7 @@ $title = 'Xác nhận thanh toán';
 require_once 'frontend/views/Layouts/header.php';
 require_once 'backend/config/payment.php';
 
-$qrAmount = (int)$hd['tong_tien'];
+$qrAmount = (int)round((float)$hd['tong_tien']);   // làm tròn, khớp với số tiền hiển thị
 $qrInfo   = 'TT phong ' . $hd['so_phong'] . ' T' . $hd['thang'] . '/' . $hd['nam'];
 $suggestedMethod = $hd['pending_method'] ?: 'tien_mat';
 $pendingNote = trim($hd['pending_note'] ?? '');
@@ -42,6 +42,12 @@ $paymentQrOptions = [
 </div>
 
 <div style="max-width:620px;">
+  <?php if (($_GET['msg'] ?? '') === 'created'): ?>
+  <div class="msg-alert msg-success" style="margin-bottom:14px;">
+    ✅ Đã tạo hóa đơn tháng <?= (int)$hd['thang'] ?>/<?= (int)$hd['nam'] ?> — Phòng <?= htmlspecialchars($hd['so_phong']) ?>.
+    Tổng <strong><?= number_format($qrAmount) ?>đ</strong>. Đưa mã QR bên dưới cho người thuê quét, số tiền đã điền sẵn.
+  </div>
+  <?php endif; ?>
   <div class="card">
     <div class="card-body">
       <div style="background:linear-gradient(135deg,rgba(79,142,247,.1),rgba(124,92,252,.07));border:1px solid rgba(79,142,247,.2);border-radius:14px;padding:20px;margin-bottom:22px;text-align:center;">

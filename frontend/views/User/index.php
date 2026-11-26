@@ -20,10 +20,13 @@ require_once 'frontend/views/Layouts/header.php';
 <div class="card" style="margin-bottom:22px;border-color:rgba(34,201,147,.25);">
   <div class="card-header">
     <div>
-      <div class="card-title">Thong bao moi</div>
-      <div class="card-sub"><?= count($thong_bao_list) ?> thong bao chua doc</div>
+      <div class="card-title">Thông báo mới</div>
+      <div class="card-sub"><?= (int)($so_chua_doc ?? count($thong_bao_list)) ?> thông báo chưa đọc · <a href="index.php?controller=thongbao&action=danhSach" style="color:var(--accent);">Xem tất cả</a></div>
     </div>
-    <a href="index.php?controller=thongbao&action=docTatCa" class="btn btn-outline btn-sm">Danh dau da doc</a>
+    <form method="POST" action="index.php?controller=thongbao&action=docTatCa" style="margin:0;">
+      <?= Csrf::field() ?>
+      <button type="submit" class="btn btn-outline btn-sm">Đánh dấu đã đọc</button>
+    </form>
   </div>
   <div style="display:flex;flex-direction:column;">
     <?php foreach ($thong_bao_list as $tb): ?>

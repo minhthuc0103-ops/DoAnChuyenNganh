@@ -378,8 +378,11 @@ window.addOCung = function () {
     </div>
     <div class="form-group">
       <label class="form-label">Họ và tên <span style="color:var(--red)">*</span></label>
-      <input class="form-control" type="text"
-             name="nguoi_o_cung[${idx}][ho_ten]" placeholder="Nguyễn Văn B" required/>
+      <div class="oc-suggest-wrap">
+        <input class="form-control" type="text" autocomplete="off"
+               name="nguoi_o_cung[${idx}][ho_ten]" placeholder="Bấm để chọn hoặc nhập tên mới" required/>
+        <div class="oc-suggest"></div>
+      </div>
     </div>
     <div class="form-grid">
       <div class="form-group">
@@ -450,3 +453,155 @@ window.removeOCung = function (idx) {
   });
 };
 
+
+// ── GỢI Ý TÊN NGƯỜI Ở CÙNG ──
+// Bấm vào ô "Họ và tên" của người ở cùng sẽ hiện danh sách người CHƯA có hợp đồng
+// (window.UNG_VIEN_OCUNG do controller truyền xuống). Chọn một người thì điền sẵn CCCD,
+// SĐT, ngày sinh, giới tính. Vẫn có thể gõ tay tên người chưa đăng ký.
+(function () {
+  const boDau = s => (s || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '')
+                      .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  const isNameInput = el => el && el.tagName === 'INPUT' && /^nguoi_o_cung\[[^\]]+\]\[ho_ten\]$/.test(el.name || '');
+  let dangMo = null;     // { input, box, items, active }
+
+  function nguoiChinhDangChon() {
+    const idEl = document.getElementById('nguoiThueIdExisting');
+    return {
+      id:   idEl && idEl.value ? parseInt(idEl.value, 10) : 0,
+      cccd: (document.getElementById('f_cccd') || {}).value || '',
+      sdt:  (document.getElementById('f_sdt') || {}).value || ''
+    };
+  }
+
+  /** Bỏ: người làm HĐ ở Bước 2 và những người đã được chọn ở khối khác (so theo id, CCCD hoặc SĐT). */
+  function ungVienConLai(block) {
+    const chinh = nguoiChinhDangChon();
+    const daChon = [];
+    document.querySelectorAll('#ocungList .oc-block').forEach(b => {
+      if (b !== block && b.dataset.ntId) daChon.push(parseInt(b.dataset.ntId, 10));
+    });
+    return (window.UNG_VIEN_OCUNG || []).filter(u => {
+      if (chinh.id && u.id === chinh.id) return false;
+      if (chinh.cccd && u.cccd && chinh.cccd.trim() === u.cccd) return false;
+      if (chinh.sdt && u.sdt && chinh.sdt.trim() === u.sdt) return false;
+      return daChon.indexOf(u.id) === -1;
+    });
+  }
+
+  function dong() {
+    if (dangMo) { dangMo.box.classList.remove('open'); dangMo = null; }
+  }
+
+  function ve(input) {
+    const block = input.closest('.oc-block');
+    const box = input.parentElement.querySelector('.oc-suggest');
+    if (!block || !box) return;
+    // Ô đang giữ đúng tên người đã chọn: bấm vào thì hiện đủ danh sách để đổi người, không lọc theo tên đó
+    const daChonDung = block.dataset.ntId && input.value === block.dataset.ntTen;
+    const q = daChonDung ? '' : boDau(input.value.trim());
+    const ds = ungVienConLai(block).filter(u => !q || boDau(u.ho_ten + ' ' + u.cccd + ' ' + u.sdt).indexOf(q) !== -1);
+
+    box.textContent = '';
+    const head = document.createElement('div');
+    head.className = 'oc-suggest-head';
+    head.textContent = 'Người chưa có hợp đồng';
+    box.appendChild(head);
+
+    if (!ds.length) {
+      const rong = document.createElement('div');
+      rong.className = 'oc-suggest-empty';
+      rong.textContent = q ? 'Không có ai khớp. Cứ nhập tên đầy đủ nếu là người mới.'
+                           : 'Hiện không còn ai chưa có hợp đồng. Hãy nhập tên người mới.';
+      box.appendChild(rong);
+    }
+    const items = ds.map(u => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'oc-suggest-item';
+      const av = document.createElement('div');
+      av.className = 'oc-suggest-av';
+      av.textContent = (u.ho_ten.trim().charAt(0) || '?').toUpperCase();
+      const txt = document.createElement('div');
+      const ten = document.createElement('div');
+      ten.className = 'oc-suggest-name';
+      ten.textContent = u.ho_ten;
+      const meta = document.createElement('div');
+      meta.className = 'oc-suggest-meta';
+      meta.textContent = [u.sdt && ('SĐT ' + u.sdt), u.cccd && ('CCCD ' + u.cccd)].filter(Boolean).join(' · ') || 'Chưa có SĐT / CCCD';
+      txt.appendChild(ten); txt.appendChild(meta);
+      b.appendChild(av); b.appendChild(txt);
+      // mousedown (không dùng click) để chọn được trước khi ô nhập mất focus
+      b.addEventListener('mousedown', e => { e.preventDefault(); chon(input, u); });
+      box.appendChild(b);
+      return b;
+    });
+    box.classList.add('open');
+    dangMo = { input, box, items, active: -1, ds };
+  }
+
+  /** Ghi đè 1 ô; giá trị rỗng thì xóa trắng (tránh sót dữ liệu của người chọn trước đó). */
+  function dat(block, ten, v, macDinh) {
+    const el = block.querySelector('[name$="[' + ten + ']"]');
+    if (!el) return;
+    const gt = (v === undefined || v === null || v === '' || v === '0000-00-00') ? (macDinh || '') : v;
+    if (el._flatpickr) {
+      if (gt) { el._flatpickr.setDate(gt, true); } else { el._flatpickr.clear(); }
+    } else {
+      el.value = gt;
+    }
+  }
+
+  const CAC_O_TU_DIEN = [['cccd', ''], ['sdt', ''], ['ngay_sinh', ''], ['gioi_tinh', 'nam']];
+
+  /** Bỏ chọn: xóa các ô đã tự điền từ người đó để không thành "tên mới + CCCD người cũ". */
+  function boChon(block) {
+    CAC_O_TU_DIEN.forEach(c => dat(block, c[0], '', c[1]));
+    delete block.dataset.ntId; delete block.dataset.ntTen;
+  }
+
+  function chon(input, u) {
+    const block = input.closest('.oc-block');
+    input.value = u.ho_ten;
+    dat(block, 'cccd', u.cccd);
+    dat(block, 'sdt', u.sdt);
+    dat(block, 'ngay_sinh', u.ngay_sinh);
+    dat(block, 'gioi_tinh', u.gioi_tinh, 'nam');
+    block.dataset.ntId = u.id;
+    block.dataset.ntTen = u.ho_ten;
+    dong();
+    if (typeof capNhatTongNguoiXe === 'function') capNhatTongNguoiXe();
+  }
+
+  document.addEventListener('focusin', e => { if (isNameInput(e.target)) ve(e.target); });
+  document.addEventListener('click',   e => {
+    if (isNameInput(e.target)) { if (!dangMo || dangMo.input !== e.target) ve(e.target); return; }
+    if (!e.target.closest || !e.target.closest('.oc-suggest')) dong();
+  });
+  document.addEventListener('input', e => {
+    if (!isNameInput(e.target)) return;
+    const block = e.target.closest('.oc-block');
+    // gõ lại tên khác tên đã chọn thì không còn coi là người đã chọn
+    if (block && block.dataset.ntId && e.target.value !== block.dataset.ntTen) {
+      boChon(block);
+    }
+    ve(e.target);
+  });
+  document.addEventListener('keydown', e => {
+    if (!dangMo || e.target !== dangMo.input) return;
+    const n = dangMo.items.length;
+    if (e.key === 'Escape') { dong(); return; }
+    if (!n) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      dangMo.active = (dangMo.active + (e.key === 'ArrowDown' ? 1 : -1) + n) % n;
+      dangMo.items.forEach((it, i) => it.classList.toggle('active', i === dangMo.active));
+      dangMo.items[dangMo.active].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter' && dangMo.active >= 0) {
+      e.preventDefault();
+      chon(dangMo.input, dangMo.ds[dangMo.active]);
+    }
+  });
+  document.addEventListener('focusout', e => {
+    if (isNameInput(e.target)) setTimeout(() => { if (dangMo && dangMo.input === e.target && document.activeElement !== e.target) dong(); }, 150);
+  });
+})();

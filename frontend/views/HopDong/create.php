@@ -2,7 +2,7 @@
 $title = 'Tạo hợp đồng mới';
 require_once 'frontend/views/Layouts/header.php';
 ?>
-<link rel="stylesheet" href="frontend/assets/css/hopdong-create.css">
+<link rel="stylesheet" href="frontend/assets/css/hopdong-create.css?v=<?= (int)@filemtime('frontend/assets/css/hopdong-create.css') ?>">
 
 <div class="page-header">
   <div class="page-title">
@@ -504,6 +504,10 @@ require_once 'frontend/views/Layouts/header.php';
   </div>
 </div>
 
-<script src="frontend/assets/js/hopdong-create.js"></script>
+<script>
+  // Người chưa có hợp đồng nào: dùng để gợi ý tên ở Bước 3 (người ở cùng)
+  window.UNG_VIEN_OCUNG = <?= json_encode($ungVienOCung ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+</script>
+<script src="frontend/assets/js/hopdong-create.js?v=<?= (int)@filemtime('frontend/assets/js/hopdong-create.js') ?>"></script>
 
 <?php require_once 'frontend/views/Layouts/footer.php'; ?>

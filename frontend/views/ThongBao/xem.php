@@ -19,14 +19,19 @@ $isAdmin = in_array($_SESSION['vai_tro'] ?? '', ['quan_ly', 'chu_tro']);
   </div>
   <div class="header-actions">
     <?php if($isAdmin): ?>
-    <a href="index.php?controller=thongbao&action=edit&id=<?= $tb['id'] ?>" class="btn btn-outline">✏ Sửa</a>
-    <form method="POST" action="index.php?controller=thongbao&action=delete" style="display:inline;" onsubmit="return confirm('Xóa?')">
-            <?= Csrf::field() ?>
-            <input type="hidden" name="id" value="<?= $tb['id'] ?>">
-            <button type="submit" class="btn btn-danger btn-xs" style="cursor:pointer;">🗑 Xóa</button>
-          </form>
+    <form method="POST" action="index.php?controller=thongbao&action=ghim" style="display:inline;">
+      <?= Csrf::field() ?>
+      <input type="hidden" name="id" value="<?= (int)$tb['id'] ?>">
+      <button type="submit" class="btn btn-outline"><?= $tb['ghim'] ? '📌 Bỏ ghim' : '📌 Ghim' ?></button>
+    </form>
+    <a href="index.php?controller=thongbao&action=edit&id=<?= (int)$tb['id'] ?>" class="btn btn-outline">✏ Sửa</a>
+    <form method="POST" action="index.php?controller=thongbao&action=delete" style="display:inline;" onsubmit="return confirm('Xóa thông báo này?')">
+      <?= Csrf::field() ?>
+      <input type="hidden" name="id" value="<?= (int)$tb['id'] ?>">
+      <button type="submit" class="btn btn-danger" style="cursor:pointer;">🗑 Xóa</button>
+    </form>
     <?php endif; ?>
-    <a href="index.php?controller=thongbao&action=index" class="btn btn-outline">← Quay lại</a>
+    <a href="index.php?controller=thongbao&action=danhSach" class="btn btn-outline">← Quay lại</a>
   </div>
 </div>
 

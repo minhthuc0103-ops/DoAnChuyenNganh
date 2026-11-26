@@ -262,11 +262,8 @@ class ChuyenPhongModel
 
         // Thông báo là bước phụ: không được làm hỏng thao tác chuyển phòng đã thành công.
         try {
-            $tbModel = new ThongBaoModel();
-            $id = $tbModel->createAndGetId($tieuDe, $noiDung, 'khac', $nguoiGui, false);
-            if ($id > 0) {
-                $tbModel->anVoiTatCaTruNguoiNhan($id, $accountIds);
-            }
+            // Thông báo RIÊNG: chỉ $accountIds thấy (lưu người nhận)
+            (new ThongBaoModel())->createRieng($tieuDe, $noiDung, 'khac', $nguoiGui, $accountIds);
         } catch (Throwable $e) {
             error_log('Khong the tao thong bao chuyen phong: ' . $e->getMessage());
         }

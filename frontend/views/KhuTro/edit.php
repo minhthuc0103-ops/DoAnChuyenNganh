@@ -44,12 +44,11 @@ require_once 'frontend/views/Layouts/header.php';
         <div style="display:flex;gap:10px;">
           <button type="submit" class="btn btn-primary">💾 Cập nhật</button>
           <a href="index.php?controller=khutro&action=index" class="btn btn-outline">Hủy</a>
-          <form method="POST" action="index.php?controller=khutro&action=delete" style="display:inline;" onsubmit="return confirm('Xóa khu này?')">
-            <?= Csrf::field() ?>
-            <input type="hidden" name="id" value="<?= $khu['id'] ?>">
-            <button type="submit" class="btn btn-danger btn-xs" style="cursor:pointer;">🗑 Xóa</button>
-          </form>
+          <button type="submit" form="formXoaKhu" class="btn btn-danger btn-xs" style="cursor:pointer;">🗑 Xóa</button>
         </div>
+      </form>
+      <form id="formXoaKhu" method="POST" action="index.php?controller=khutro&action=delete" onsubmit="return confirm('Xóa khu này?')">
+        <?= Csrf::field() ?><input type="hidden" name="id" value="<?= $khu['id'] ?>">
       </form>
     </div>
   </div>

@@ -146,8 +146,13 @@ class NguoiThueController {
 
     // Chỉ cho xóa khi KHÔNG còn HĐ hiệu lực
     public function delete() {
-        $id = (int)($_GET['id'] ?? 0);
-        $ok = $this->model->delete($id);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?controller=nguoithue&action=index');
+            exit;
+        }
+        Csrf::check();
+        $id = (int)($_POST['id'] ?? 0);
+        $ok = $id > 0 && $this->model->delete($id);
         if (!$ok) {
             header('Location: index.php?controller=nguoithue&action=index&msg=cannot_delete');
         } else {

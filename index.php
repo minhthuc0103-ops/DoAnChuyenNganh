@@ -52,7 +52,7 @@ if (!empty($_SESSION['user']) && ($_SESSION['vai_tro'] ?? '') === 'user') {
     }
 }
 
-$adminControllers = ['khutro','phong','nguoithue','hopdong','hoadon','baocao','dashboard','dongia','xe','aiknowledge','luutru'];
+$adminControllers = ['khutro','phong','nguoithue','hopdong','hoadon','baocao','dashboard','dongia','xe','aiknowledge','luutru','canhbao'];
 if (!empty($_SESSION['user']) && ($_SESSION['vai_tro'] ?? '') === 'user' && in_array($controller, $adminControllers)) {
     // Cho phép user xem lịch sử thanh toán và chi tiết hóa đơn
     if ($controller === 'hoadon' && in_array($action, ['lichSu', 'chiTiet', 'xacNhanThanhToanNguoiThue'])) {
@@ -88,10 +88,12 @@ $map = [
     'xe'          => 'XeController',
     'thongbao'    => 'ThongBaoController',
     'chuyenphong' => 'ChuyenPhongController',
+    'bangiao'     => 'BanGiaoController',
     'chat'        => 'ChatController',
     'ai'          => 'AiController',
     'aiknowledge' => 'AiKnowledgeController',
     'luutru'      => 'LuuTruController',
+    'canhbao'     => 'CanhBaoController',
 ];
 
 if (!isset($map[$controller])) {
