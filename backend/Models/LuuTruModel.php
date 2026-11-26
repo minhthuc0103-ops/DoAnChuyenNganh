@@ -220,17 +220,72 @@ class LuuTruModel {
         return $added;
     }
 
+    /**
+     * Điều kiện phạm vi của NGƯỜI DÙNG (người thuê): chỉ thấy các bản ghi lưu trú
+     *  - thuộc phòng mà họ đang có hợp đồng hiệu lực (gồm cả người ở tạm/ở cùng do họ đăng ký), hoặc
+     *  - do chính hồ sơ người thuê của họ đứng tên.
+     * Trả về [đoạn SQL, tham số], dùng với alias bảng `lt` = khai_bao_luu_tru.
+     */
+    private function userScope(int $account_id): array {
+        $sql = "(lt.phong_id IN (
+                    SELECT hd.phong_id FROM hop_dong hd
+                    JOIN nguoi_thue n ON hd.nguoi_thue_id = n.id
+                    WHERE n.account_id = ? AND hd.trang_thai = 'hieu_luc')
+                 OR lt.nguoi_thue_id IN (SELECT id FROM nguoi_thue WHERE account_id = ?))";
+        return [$sql, [$account_id, $account_id]];
+    }
+
+    /** Danh sách lưu trú người dùng được phép xem (cả phòng của họ). */
     public function getByAccountId(int $account_id): array {
+        [$scope, $params] = $this->userScope($account_id);
         $stmt = $this->db->prepare("
             SELECT lt.*, p.so_phong, k.ten_khu, k.dia_chi AS dia_chi_khu
             FROM khai_bao_luu_tru lt
             JOIN phong p ON lt.phong_id = p.id
             LEFT JOIN khu_tro k ON p.khu_id = k.id
-            JOIN nguoi_thue nt ON lt.nguoi_thue_id = nt.id
-            WHERE nt.account_id = ?
-            ORDER BY lt.id DESC
+            WHERE $scope
+            ORDER BY p.so_phong ASC, lt.id DESC
         ");
-        $stmt->execute([$account_id]);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /** Người dùng này có được xem bản ghi lưu trú $id không (dùng cho Mẫu CT01). */
+    public function userCanView(int $account_id, int $id): bool {
+        [$scope, $params] = $this->userScope($account_id);
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM khai_bao_luu_tru lt WHERE lt.id = ? AND $scope");
+        $stmt->execute(array_merge([$id], $params));
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    /** Gợi ý tìm kiếm nhanh cho quản trị: theo tên / SĐT / CCCD. */
+    public function search(string $keyword, int $limit = 8): array {
+        $kw = '%' . addcslashes(trim($keyword), '\\%_') . '%';
+        $limit = max(1, min(20, $limit));
+        $stmt = $this->db->prepare("
+            SELECT lt.id, lt.ho_ten, lt.cccd, lt.sdt, lt.trang_thai, p.so_phong, k.ten_khu
+            FROM khai_bao_luu_tru lt
+            JOIN phong p ON lt.phong_id = p.id
+            LEFT JOIN khu_tro k ON p.khu_id = k.id
+            WHERE lt.ho_ten LIKE ? OR lt.cccd LIKE ? OR lt.sdt LIKE ?
+            ORDER BY lt.ho_ten ASC, lt.id DESC
+            LIMIT $limit
+        ");
+        $stmt->execute([$kw, $kw, $kw]);
+        return $stmt->fetchAll();
+    }
+
+    /** Toàn bộ lịch sử lưu trú của một CCCD (các phòng/đợt khác nhau). */
+    public function getHistoryByCccd(string $cccd): array {
+        $stmt = $this->db->prepare("
+            SELECT lt.id, lt.ngay_den, lt.ngay_di, lt.trang_thai, p.so_phong, k.ten_khu
+            FROM khai_bao_luu_tru lt
+            JOIN phong p ON lt.phong_id = p.id
+            LEFT JOIN khu_tro k ON p.khu_id = k.id
+            WHERE lt.cccd = ?
+            ORDER BY lt.ngay_den DESC, lt.id DESC
+        ");
+        $stmt->execute([$cccd]);
         return $stmt->fetchAll();
     }
 }

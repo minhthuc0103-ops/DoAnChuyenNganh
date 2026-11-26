@@ -6,7 +6,7 @@ require_once 'frontend/views/Layouts/header.php';
 <div class="page-header">
   <div class="page-title">
     <h1>📋 Thông tin khai báo lưu trú</h1>
-    <p>Hồ sơ đăng ký tạm trú / lưu trú của bạn tại cơ sở phòng trọ</p>
+    <p>Người ở tạm và những người đã được đăng ký lưu trú trong phòng của bạn</p>
   </div>
   <a href="index.php?controller=user&action=index" class="btn btn-outline">← Quay lại</a>
 </div>
@@ -26,7 +26,12 @@ require_once 'frontend/views/Layouts/header.php';
   <div class="card" style="padding:20px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
       <div>
-        <div style="font-size:18px;font-weight:700;color:var(--text);"><?= htmlspecialchars($r['ho_ten']) ?></div>
+        <div style="font-size:18px;font-weight:700;color:var(--text);">
+          <?= htmlspecialchars($r['ho_ten']) ?>
+          <?php if (!empty($nguoi_thue['cccd']) && $nguoi_thue['cccd'] === $r['cccd']): ?>
+            <span class="badge" style="background:rgba(79,142,247,.15);color:var(--accent);font-size:11px;vertical-align:middle;">Bạn</span>
+          <?php endif; ?>
+        </div>
         <div style="font-size:13px;color:var(--text3);">
           Phòng <?= htmlspecialchars($r['so_phong']) ?> (<?= htmlspecialchars($r['ten_khu']??'') ?>)
         </div>

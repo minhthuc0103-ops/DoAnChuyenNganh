@@ -78,8 +78,10 @@ require_once 'frontend/views/Layouts/header.php';
     <input type="hidden" name="controller" value="luutru">
     <input type="hidden" name="action" value="index">
 
-    <div style="flex:1;min-width:220px;">
-      <input type="text" name="keyword" class="form-control" placeholder="Tìm theo tên, CCCD, SĐT, số phòng..." value="<?= htmlspecialchars($filter['keyword']??'') ?>">
+    <div style="flex:1;min-width:220px;position:relative;">
+      <input type="text" name="keyword" id="ltKeyword" class="form-control" autocomplete="off"
+             placeholder="Nhập tên, SĐT hoặc CCCD để xem người đã đăng ký lưu trú..." value="<?= htmlspecialchars($filter['keyword']??'') ?>">
+      <div id="ltSuggest" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:50;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.35);max-height:340px;overflow-y:auto;"></div>
     </div>
 
     <div style="min-width:160px;">
@@ -138,7 +140,7 @@ require_once 'frontend/views/Layouts/header.php';
                 <?= strtoupper(mb_substr($r['ho_ten'], 0, 1, 'UTF-8')) ?>
               </div>
               <div>
-                <strong style="color:var(--text);font-size:14px;"><?= htmlspecialchars($r['ho_ten']) ?></strong>
+                <a href="index.php?controller=luutru&action=detail&id=<?= $r['id'] ?>" style="color:var(--text);font-size:14px;font-weight:700;text-decoration:none;" title="Xem chi tiết thông tin cá nhân"><?= htmlspecialchars($r['ho_ten']) ?></a>
                 <div style="font-size:12px;color:var(--text3);">
                   <?= $r['gioi_tinh']==='nu'?'Nữ':'Nam' ?> · <?= $r['ngay_sinh'] ? date('d/m/Y', strtotime($r['ngay_sinh'])) : 'Chưa có NS' ?>
                 </div>
@@ -275,6 +277,65 @@ function openStatusModal(id, status, dvc) {
 function closeStatusModal() {
   document.getElementById('statusModal').style.display = 'none';
 }
+
+// ── Gợi ý khi gõ tên / SĐT / CCCD: bấm vào để xem chi tiết thông tin cá nhân ──
+(function () {
+  var input = document.getElementById('ltKeyword');
+  var box   = document.getElementById('ltSuggest');
+  if (!input || !box) return;
+  var timer = null, seq = 0;
+
+  function hide() { box.style.display = 'none'; box.textContent = ''; }
+
+  function render(rows) {
+    box.textContent = '';
+    if (!rows.length) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'padding:14px;color:var(--text3);font-size:13px;';
+      empty.textContent = 'Không có ai đã đăng ký lưu trú khớp với từ khóa.';
+      box.appendChild(empty);
+    }
+    rows.forEach(function (r) {
+      var a = document.createElement('a');
+      a.href = 'index.php?controller=luutru&action=detail&id=' + encodeURIComponent(r.id);
+      a.style.cssText = 'display:block;padding:10px 14px;text-decoration:none;color:var(--text);border-bottom:1px solid var(--border);';
+      a.onmouseover = function () { a.style.background = 'var(--bg3)'; };
+      a.onmouseout  = function () { a.style.background = 'transparent'; };
+
+      var name = document.createElement('div');
+      name.style.cssText = 'font-weight:700;font-size:14px;';
+      name.textContent = r.name;
+
+      var meta = document.createElement('div');
+      meta.style.cssText = 'font-size:12px;color:var(--text3);margin-top:2px;';
+      meta.textContent = 'CCCD ' + (r.cccd || '—') + ' · SĐT ' + (r.phone || '—') +
+                         ' · Phòng ' + r.room + (r.area ? ' (' + r.area + ')' : '');
+
+      a.appendChild(name);
+      a.appendChild(meta);
+      box.appendChild(a);
+    });
+    box.style.display = 'block';
+  }
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    var q = input.value.trim();
+    if (q.length < 2) { hide(); return; }
+    timer = setTimeout(function () {
+      var mine = ++seq;
+      fetch('index.php?controller=luutru&action=suggest&q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+        .then(function (res) { return res.json(); })
+        .then(function (data) { if (mine === seq && data.ok) render(data.results || []); })
+        .catch(hide);
+    }, 200);
+  });
+
+  document.addEventListener('click', function (e) {
+    if (e.target !== input && !box.contains(e.target)) hide();
+  });
+  input.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
+})();
 </script>
 
 <?php require_once 'frontend/views/Layouts/footer.php'; ?>

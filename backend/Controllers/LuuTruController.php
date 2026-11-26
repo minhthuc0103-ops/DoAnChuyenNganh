@@ -162,11 +162,61 @@ class LuuTruController {
         exit;
     }
 
+    private function laQuanTri(): bool {
+        return in_array($_SESSION['vai_tro'] ?? '', ['quan_ly', 'chu_tro'], true);
+    }
+
+    /** Gợi ý khi quản trị gõ tên / SĐT / CCCD ở ô tìm kiếm (JSON). */
+    public function suggest() {
+        header('Content-Type: application/json; charset=utf-8');
+        if (!$this->laQuanTri()) {
+            echo json_encode(['ok' => false, 'results' => []]);
+            exit;
+        }
+        $q = trim($_GET['q'] ?? '');
+        if (mb_strlen($q, 'UTF-8') < 2) {
+            echo json_encode(['ok' => true, 'results' => []]);
+            exit;
+        }
+        $results = array_map(fn($r) => [
+            'id'    => (int)$r['id'],
+            'name'  => $r['ho_ten'],
+            'cccd'  => $r['cccd'],
+            'phone' => $r['sdt'],
+            'room'  => $r['so_phong'],
+            'area'  => $r['ten_khu'] ?? '',
+        ], $this->model->search($q, 8));
+        echo json_encode(['ok' => true, 'results' => $results], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /** Trang chi tiết thông tin cá nhân của một người đã đăng ký lưu trú (chỉ quản trị). */
+    public function detail() {
+        if (!$this->laQuanTri()) {
+            header('Location: index.php?controller=user&action=luuTru');
+            exit;
+        }
+        $id   = (int)($_GET['id'] ?? 0);
+        $item = $this->model->getById($id);
+        if (!$item) {
+            header('Location: index.php?controller=luutru&action=index');
+            exit;
+        }
+        $history = $this->model->getHistoryByCccd((string)$item['cccd']);
+        $title   = 'Chi tiết lưu trú - ' . $item['ho_ten'];
+        require 'frontend/views/LuuTru/chi_tiet.php';
+    }
+
     public function mauCT01() {
         $id = (int)($_GET['id'] ?? 0);
         $item = $this->model->getById($id);
         if (!$item) {
             die('Không tìm thấy bản ghi lưu trú!');
+        }
+        // Người dùng chỉ được in CT01 của người ở trong phòng mình
+        if (!$this->laQuanTri() && !$this->model->userCanView((int)($_SESSION['user_id'] ?? 0), $id)) {
+            http_response_code(403);
+            die('Bạn không có quyền xem bản ghi này.');
         }
 
         // Lấy thông tin chủ hộ / chủ trọ

@@ -59,6 +59,8 @@ if (!empty($_SESSION['user']) && ($_SESSION['vai_tro'] ?? '') === 'user' && in_a
         // OK
     } elseif ($controller === 'thongbao' && $action === 'guiSuaChua') {
         // OK, cho phép
+    } elseif ($controller === 'luutru' && $action === 'mauCT01') {
+        // OK: người dùng in CT01 của người ở trong phòng mình (controller tự kiểm tra quyền)
     } else {
         header('Location: index.php?controller=user&action=index');
         exit;

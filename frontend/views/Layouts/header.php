@@ -192,12 +192,6 @@
       <?php if ($__soTraPhongChoDuyet > 0): ?><span class="nav-badge nb-amber"><?= $__soTraPhongChoDuyet ?></span><?php endif; ?>
     </a>
 
-    <a class="nav-item <?= (($_GET['controller']??'')==='hoadon' && ($_GET['action']??'')==='baoChiSoList')?'active':'' ?>"
-       href="index.php?controller=hoadon&action=baoChiSoList">
-      <div class="nav-icon">⚡</div>Duyệt điện nước (AI)
-      <?php if ($__soBaoChiSoChoDuyet > 0): ?><span class="nav-badge nb-amber"><?= $__soBaoChiSoChoDuyet ?></span><?php endif; ?>
-    </a>
-
     <a class="nav-item <?= (($_GET['controller']??'')==='hoadon')?'active':'' ?>"
        href="index.php?controller=hoadon&action=index">
       <div class="nav-icon">💵</div>Hóa đơn
