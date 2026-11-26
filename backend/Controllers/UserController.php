@@ -154,6 +154,7 @@ class UserController {
         $db = \Database::getInstance();
         $error   = '';
         $success = '';
+        $tabMo   = '';   // tab cần mở lại sau khi gửi form ('xe' = Xe của tôi)
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Csrf::check(); // ═══ Lỗi #3: CSRF ═══
@@ -251,6 +252,19 @@ class UserController {
                         $success = 'Cập nhật thông tin thành công!';
                     }
                 }
+            } elseif ($action === 'add_xe') {
+                $tabMo = 'xe';
+                $loi = (new XeDangKyModel())->them(
+                    $account_id,
+                    (string)($_POST['bien_so'] ?? ''),
+                    (string)($_POST['loai_xe'] ?? 'xe_may'),
+                    (string)($_POST['mau_sac'] ?? '')
+                );
+                if ($loi !== null) { $error = $loi; } else { $success = 'Đã đăng ký xe. Khi tạo hợp đồng, thông tin xe sẽ được điền sẵn.'; }
+            } elseif ($action === 'delete_xe') {
+                $tabMo = 'xe';
+                if ((new XeDangKyModel())->xoa((int)($_POST['xe_id'] ?? 0), $account_id)) { $success = 'Đã xóa xe khỏi danh sách đăng ký.'; }
+                else { $error = 'Không tìm thấy xe cần xóa.'; }
             } elseif ($action === 'change_password') {
                 $old = $_POST['old_password'] ?? '';
                 $new = $_POST['new_password'] ?? '';
@@ -297,6 +311,9 @@ class UserController {
             $xeStmt->execute([$nguoi_thue['id'], '%' . $nguoi_thue['ho_ten'] . '%']);
             $xeList = $xeStmt->fetchAll();
         }
+        // Xe tự đăng ký trong hồ sơ (chưa cần hợp đồng) + biển số nào đã nằm trong hợp đồng
+        $xeDangKy   = (new XeDangKyModel())->getByAccount($account_id);
+        $bienSoTrongHD = array_map(fn($x) => strtoupper(trim((string)$x['bien_so'])), array_filter($xeList, fn($x) => ($x['hd_trang_thai'] ?? '') === 'hieu_luc'));
 
         $title = 'Hồ sơ của tôi';
         require 'frontend/views/User/profile.php';

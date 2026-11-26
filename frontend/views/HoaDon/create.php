@@ -59,7 +59,7 @@ $bcs_id_init   = (int)($_POST['bao_chi_so_id'] ?? $_GET['bcs_id'] ?? 0);
           <div class="form-group">
             <label class="form-label">🏠 Phòng <span style="color:var(--red)">*</span></label>
             <select class="form-control" name="phong_id" id="phongSel" required onchange="autoFill()">
-              <option value="">— Chọn phòng —</option>
+              <option value=""><?= empty($phongs) ? '— Chưa có phòng nào có hợp đồng —' : '— Chọn phòng —' ?></option>
               <?php foreach($phongs??[] as $p): ?>
               <option value="<?= $p['id'] ?>" data-gia="<?= $p['gia'] ?>"
                       data-khu="<?= $p['khu_id'] ?? '' ?>"
@@ -70,6 +70,7 @@ $bcs_id_init   = (int)($_POST['bao_chi_so_id'] ?? $_GET['bcs_id'] ?? 0);
               </option>
               <?php endforeach; ?>
             </select>
+            <div style="font-size:11px;color:var(--text3);margin-top:5px;">Chỉ hiện phòng đang có hợp đồng hiệu lực.</div>
           </div>
           <div class="form-grid" style="gap:10px">
             <div class="form-group">
@@ -218,7 +219,7 @@ function loadPhong(khu_id) {
   fetch(url)
     .then(r => r.json())
     .then(phongs => {
-      sel.innerHTML = '<option value="">— Chọn phòng —</option>';
+      sel.innerHTML = '<option value="">' + (phongs.length ? '— Chọn phòng —' : '— Khu này chưa có phòng nào có hợp đồng —') + '</option>';
       phongs.forEach(p => {
         const khuTxt = p.ten_khu ? ` (${p.ten_khu})` : '';
         const opt = document.createElement('option');

@@ -203,6 +203,10 @@ require_once 'frontend/views/Layouts/header.php';
                  data-cccd="<?=htmlspecialchars($nt['cccd']??'')?>"
                  data-sdt="<?=htmlspecialchars($nt['sdt']??'')?>"
                  data-diachi="<?=htmlspecialchars($nt['dia_chi']??'')?>"
+                 data-ngaysinh="<?=htmlspecialchars(($nt['ngay_sinh'] ?? '') === '0000-00-00' ? '' : (string)($nt['ngay_sinh'] ?? ''))?>"
+                 data-gioitinh="<?=htmlspecialchars(in_array($nt['gioi_tinh'] ?? '', ['nam','nu','khac'], true) ? $nt['gioi_tinh'] : 'nam')?>"
+                 data-account="<?=(int)($nt['account_id'] ?? 0)?>"
+                 data-xe="<?=htmlspecialchars(json_encode($xeDangKyMap[(int)($nt['account_id'] ?? 0)] ?? [], JSON_UNESCAPED_UNICODE))?>"
                  data-search="<?=strtolower(htmlspecialchars($nt['ho_ten'].' '.$nt['sdt'].' '.$nt['cccd']))?>"
                  onclick="selectNT(this)"
                  style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;transition:.15s;"
@@ -257,6 +261,8 @@ require_once 'frontend/views/Layouts/header.php';
             <option value="">— Không liên kết (hoặc tự động theo SĐT) —</option>
             <?php foreach($accountList ?? [] as $acc): ?>
             <option value="<?= $acc['id'] ?>"
+              data-hoten="<?= htmlspecialchars($acc['ho_ten']) ?>"
+              data-sdt="<?= htmlspecialchars($acc['sdt'] ?? '') ?>"
               <?= ($_POST['account_id'] ?? '') == $acc['id'] ? 'selected' : '' ?>>
               <?= htmlspecialchars($acc['ho_ten']) ?>
               (@<?= htmlspecialchars($acc['username']) ?>)
@@ -292,7 +298,7 @@ require_once 'frontend/views/Layouts/header.php';
 
         <!-- Xe của người ký hợp đồng - 1 xe cố định -->
         <div style="margin-top:4px;padding:14px;background:rgba(34,201,147,.04);border:1px solid rgba(34,201,147,.15);border-radius:12px;">
-          <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:10px;">🏍 Xe đăng ký <span style="font-weight:400;color:var(--text3);">(không bắt buộc)</span></div>
+          <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:10px;">🏍 Xe đăng ký <span style="font-weight:400;color:var(--text3);">(không bắt buộc · tối đa 2 xe · tự điền nếu người thuê đã đăng ký xe trong hồ sơ)</span></div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
             <div>
               <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:4px;">Biển số</label>
@@ -312,6 +318,29 @@ require_once 'frontend/views/Layouts/header.php';
             <div>
               <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:4px;">Tên xe</label>
               <input class="form-control" type="text" name="xe_list[chu][mau_sac]"
+                     placeholder="Wave Alpha, Exciter..." style="font-size:13px;"/>
+            </div>
+          </div>
+          <!-- Xe thứ 2 (nếu có) -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">
+            <div>
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:4px;">Biển số xe 2</label>
+              <input class="form-control" type="text" name="xe_list[chu2][bien_so]"
+                     placeholder="Không bắt buộc" style="font-size:13px;text-transform:uppercase;"
+                     oninput="this.value=this.value.toUpperCase()"/>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:4px;">Loại xe</label>
+              <select class="form-control" name="xe_list[chu2][loai_xe]" style="font-size:13px;">
+                <option value="xe_may">🏍 Xe máy</option>
+                <option value="xe_dien">⚡ Xe điện</option>
+                <option value="xe_dap">🚲 Xe đạp</option>
+                <option value="o_to">🚗 Ô tô</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:4px;">Tên xe</label>
+              <input class="form-control" type="text" name="xe_list[chu2][mau_sac]"
                      placeholder="Wave Alpha, Exciter..." style="font-size:13px;"/>
             </div>
           </div>
@@ -411,7 +440,7 @@ require_once 'frontend/views/Layouts/header.php';
                     background:var(--bg3);border:1px solid var(--border);border-radius:12px;">
           <!-- Thumbnail -->
           <div id="sigPreviewBox"
-               style="width:160px;height:80px;border-radius:10px;background:#fff;
+               style="width:160px;height:80px;border-radius:10px;background:#0b1220;
                       border:2px solid var(--border);display:flex;align-items:center;
                       justify-content:center;flex-shrink:0;overflow:hidden;">
             <img id="sigPreviewImg" src="" alt=""
@@ -476,7 +505,7 @@ require_once 'frontend/views/Layouts/header.php';
     <!-- Canvas area -->
     <div style="padding:20px;">
       <div id="sigModalWrap"
-           style="border:2px dashed rgba(79,142,247,.4);border-radius:14px;background:#fff;
+           style="border:2px dashed rgba(79,142,247,.4);border-radius:14px;background:#0b1220;
                   position:relative;overflow:hidden;cursor:crosshair;">
         <canvas id="sigCanvas" style="display:block;width:100%;touch-action:none;"></canvas>
         <div id="sigHint"

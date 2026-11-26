@@ -55,7 +55,7 @@ if (!empty($_SESSION['user']) && ($_SESSION['vai_tro'] ?? '') === 'user') {
 $adminControllers = ['khutro','phong','nguoithue','hopdong','hoadon','baocao','dashboard','dongia','xe','aiknowledge','luutru','canhbao'];
 if (!empty($_SESSION['user']) && ($_SESSION['vai_tro'] ?? '') === 'user' && in_array($controller, $adminControllers)) {
     // Cho phép user xem lịch sử thanh toán và chi tiết hóa đơn
-    if ($controller === 'hoadon' && in_array($action, ['lichSu', 'chiTiet', 'xacNhanThanhToanNguoiThue'])) {
+    if ($controller === 'hoadon' && in_array($action, ['lichSu', 'chiTiet', 'chiTietGiaoDich', 'xacNhanThanhToanNguoiThue'])) {
         // OK
     } elseif ($controller === 'thongbao' && $action === 'guiSuaChua') {
         // OK, cho phép

@@ -184,6 +184,51 @@ $detailQrOptions = [
     </div>
   </div>
 
+  <!-- YÊU CẦU XÁC NHẬN THANH TOÁN do người thuê gửi (kèm ảnh chụp giao dịch) -->
+  <?php if(!$isPaid && !empty($yeuCauCho)): ?>
+  <?php
+    $ptTen = ['tien_mat'=>'Tiền mặt','chuyen_khoan'=>'Chuyển khoản','momo'=>'MoMo','vnpay'=>'VNPay','zalopay'=>'ZaloPay','khac'=>'Khác'][$yeuCauCho['phuong_thuc']] ?? 'Khác';
+  ?>
+  <div class="card" style="margin-bottom:18px;border-color:rgba(247,169,79,.4);">
+    <div class="card-header"><div class="card-title">⏳ Yêu cầu xác nhận thanh toán</div><span class="pill p-amber">Chờ xác nhận</span></div>
+    <div class="card-body">
+      <div style="font-size:13px;color:var(--text2);line-height:1.9;margin-bottom:12px;">
+        <div><strong style="color:var(--text);"><?= htmlspecialchars($yeuCauCho['nguoi_tra'] ?: 'Người thuê') ?></strong> báo đã thanh toán <strong style="color:var(--accent);"><?= number_format((float)$yeuCauCho['so_tien']) ?>đ</strong> bằng <strong><?= $ptTen ?></strong></div>
+        <div style="font-size:12px;color:var(--text3);">Gửi lúc <?= date('d/m/Y H:i', strtotime($yeuCauCho['created_at'])) ?></div>
+      </div>
+
+      <?php if(!empty($yeuCauCho['anh_chung_tu'])): ?>
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600;">ẢNH CHỤP GIAO DỊCH (bấm để xem rõ)</div>
+        <a href="<?= htmlspecialchars($yeuCauCho['anh_chung_tu']) ?>" target="_blank" rel="noopener">
+          <img src="<?= htmlspecialchars($yeuCauCho['anh_chung_tu']) ?>" alt="Ảnh giao dịch" style="max-width:100%;max-height:340px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);" onerror="this.replaceWith(document.createTextNode('Không tải được ảnh'))">
+        </a>
+      </div>
+      <?php else: ?>
+      <div style="margin-bottom:14px;font-size:12px;color:var(--text3);">Người thuê không đính kèm ảnh (trả tiền mặt).</div>
+      <?php endif; ?>
+
+      <?php if($isAdmin): ?>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;" class="no-print">
+        <form method="POST" action="index.php?controller=hoadon&action=thanhToan&id=<?= (int)$hd['id'] ?>" style="flex:1;min-width:200px;" onsubmit="return confirm('Xác nhận đã nhận đủ tiền? Người thuê sẽ nhận thông báo thanh toán thành công.')">
+          <?= Csrf::field() ?>
+          <input type="hidden" name="phuong_thuc" value="<?= htmlspecialchars($yeuCauCho['phuong_thuc']) ?>">
+          <button type="submit" class="btn btn-success" style="width:100%;justify-content:center;">✓ Đã nhận tiền, xác nhận thanh toán</button>
+        </form>
+        <form method="POST" action="index.php?controller=hoadon&action=tuChoiThanhToan" style="flex:1;min-width:240px;display:flex;gap:8px;" onsubmit="return confirm('Từ chối yêu cầu này? Người thuê sẽ được báo và có thể gửi lại.')">
+          <?= Csrf::field() ?>
+          <input type="hidden" name="id" value="<?= (int)$hd['id'] ?>">
+          <input type="text" name="ly_do" class="form-control" maxlength="200" placeholder="Lý do (VD: chưa thấy tiền về)" style="flex:1;">
+          <button type="submit" class="btn btn-outline" style="color:var(--red);">✗ Từ chối</button>
+        </form>
+      </div>
+      <?php else: ?>
+      <div style="font-size:12px;color:var(--amber);font-weight:600;">Quản lý đang kiểm tra giao dịch. Bạn sẽ nhận thông báo khi được xác nhận.</div>
+      <?php endif; ?>
+    </div>
+  </div>
+  <?php endif; ?>
+
   <!-- QR THANH TOÁN (chỉ hiện khi chưa TT) -->
   <?php if(!$isPaid): ?>
   <div class="card" style="margin-bottom:18px;">

@@ -16,6 +16,12 @@ require_once 'frontend/views/Layouts/header.php';
   <?php endif; ?>
 </div>
 
+<?php if (!empty($_GET['tt_ok'])): ?>
+<div class="msg-alert msg-success" style="margin-bottom:18px;">✅ Đã gửi yêu cầu xác nhận thanh toán. Quản lý sẽ kiểm tra và báo lại cho bạn trong mục Thông báo.</div>
+<?php elseif (!empty($_GET['tt_err'])): ?>
+<div class="msg-alert msg-error" style="margin-bottom:18px;">⚠ <?= htmlspecialchars((string)$_GET['tt_err']) ?></div>
+<?php endif; ?>
+
 <?php if (!empty($thong_bao_list)): ?>
 <div class="card" style="margin-bottom:22px;border-color:rgba(34,201,147,.25);">
   <div class="card-header">
@@ -321,10 +327,19 @@ require_once 'frontend/views/Layouts/header.php';
           <div id="payQrHint" style="font-size:11px;color:var(--amber);margin-top:10px;text-align:left;"></div>
         </div>
       </div>
-      <form id="userPayForm" method="POST" action="" style="display:flex;gap:10px;">
+      <form id="userPayForm" method="POST" action="" enctype="multipart/form-data" style="display:flex;gap:10px;flex-wrap:wrap;">
             <?= Csrf::field() ?>
         <input type="hidden" name="phuong_thuc" id="userPayMethod" value="tien_mat"/>
-        <button type="submit" class="btn btn-success" style="flex:1;justify-content:center;padding:12px;" onclick="return confirm('Xác nhận bạn đã gửi thanh toán hóa đơn này?')">✓ Tôi đã thanh toán</button>
+
+        <!-- Ảnh chụp lịch sử giao dịch: bắt buộc khi chuyển khoản / ví điện tử -->
+        <div id="payProofBox" style="display:none;flex-basis:100%;background:var(--bg3);border:1px dashed var(--border);border-radius:12px;padding:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">📸 Ảnh chụp lịch sử giao dịch <span style="color:var(--red);">*</span></div>
+          <input type="file" name="anh_chung_tu" id="payProofFile" accept="image/jpeg,image/png,image/webp" style="width:100%;font-size:12px;color:var(--text2);">
+          <div style="font-size:11px;color:var(--text3);margin-top:6px;">Chụp màn hình giao dịch thành công (có số tiền, thời gian, nội dung). JPG/PNG/WEBP, tối đa 5MB.</div>
+          <img id="payProofPreview" alt="" style="display:none;margin-top:10px;max-width:100%;max-height:200px;border-radius:10px;border:1px solid var(--border);">
+        </div>
+
+        <button type="submit" class="btn btn-success" style="flex:1;justify-content:center;padding:12px;" onclick="return checkPayProof()">✓ Gửi yêu cầu xác nhận thanh toán</button>
         <button type="button" onclick="closePayModal()" class="btn btn-outline" style="padding:12px 18px;">Đóng</button>
       </form>
     </div>
@@ -347,13 +362,35 @@ function openPayModal(hdId,soPhong,tongTien,thang,nam){
   document.querySelectorAll('.pay-method').forEach(el=>el.classList.remove('active'));
   document.querySelector('.pay-method[data-val="tien_mat"]').classList.add('active');
   document.getElementById('payQRSection').style.display='none';
+  resetPayProof();
   document.getElementById('payModal').style.display='flex';document.body.style.overflow='hidden';
 }
+function resetPayProof(){
+  const f=document.getElementById('payProofFile');if(f)f.value='';
+  const p=document.getElementById('payProofPreview');if(p){p.style.display='none';p.removeAttribute('src');}
+  document.getElementById('payProofBox').style.display='none';
+}
+function checkPayProof(){
+  const method=document.getElementById('userPayMethod').value;
+  const f=document.getElementById('payProofFile');
+  if(method!=='tien_mat'&&(!f.files||!f.files.length)){
+    alert('Vui lòng đính kèm ảnh chụp lịch sử giao dịch để quản lý xác nhận.');return false;
+  }
+  if(f.files&&f.files[0]&&f.files[0].size>5*1024*1024){alert('Ảnh tối đa 5MB.');return false;}
+  return confirm('Gửi yêu cầu xác nhận đã thanh toán cho quản lý?');
+}
+document.addEventListener('change',function(e){
+  if(e.target&&e.target.id==='payProofFile'){
+    const p=document.getElementById('payProofPreview'),file=e.target.files&&e.target.files[0];
+    if(file){p.src=URL.createObjectURL(file);p.style.display='block';}else{p.style.display='none';}
+  }
+});
 function closePayModal(){document.getElementById('payModal').style.display='none';document.body.style.overflow='';}
 function selectPayMethod(el){
   const val=el.dataset.val;
   document.querySelectorAll('.pay-method').forEach(e=>e.classList.remove('active'));el.classList.add('active');
   document.getElementById('userPayMethod').value=val;
+  document.getElementById('payProofBox').style.display=val==='tien_mat'?'none':'block';
   const section=document.getElementById('payQRSection');section.style.display=val==='tien_mat'?'none':'block';
   if(val==='chuyen_khoan'){
     document.getElementById('payModalQR').src=currentBankQrUrl;document.getElementById('payBankInfo').style.display='block';

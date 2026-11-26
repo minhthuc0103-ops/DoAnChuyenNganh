@@ -43,6 +43,18 @@ class PhongModel {
         return $s->fetchAll();
     }
 
+    /** Phòng đang có hợp đồng hiệu lực (dùng khi lập hóa đơn: chỉ phòng có người thuê mới có hóa đơn). */
+    public function getCoHopDong(?int $khu_id = null): array {
+        $sql = "SELECT p.*, k.ten_khu FROM phong p
+                LEFT JOIN khu_tro k ON p.khu_id = k.id
+                WHERE EXISTS (SELECT 1 FROM hop_dong hd WHERE hd.phong_id = p.id AND hd.trang_thai = 'hieu_luc')"
+             . ($khu_id ? " AND p.khu_id = ?" : "")
+             . " ORDER BY k.ten_khu, p.so_phong";
+        $s = $this->db->prepare($sql);
+        $s->execute($khu_id ? [$khu_id] : []);
+        return $s->fetchAll();
+    }
+
     public function countByTrangThai(?int $khu_id = null): array {
         if ($khu_id) {
             $s = $this->db->prepare(

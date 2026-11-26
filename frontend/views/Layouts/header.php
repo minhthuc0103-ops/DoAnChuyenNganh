@@ -70,6 +70,7 @@
             ['🔄', 'yêu cầu chuyển phòng chờ duyệt', (int)$__soChuyenPhongChoDuyet, 'Cần duyệt hoặc từ chối', 'index.php?controller=chuyenphong&action=index'],
             ['➕', 'yêu cầu thêm người ở cùng chờ duyệt', (int)$__soOCungChoDuyet, 'Cần duyệt hoặc từ chối', 'index.php?controller=nguoithue&action=yeuCauOCung'],
             ['📦', 'yêu cầu trả phòng chờ kiểm tra', (int)$__soTraPhongChoDuyet, 'Kiểm tra phòng và quyết toán cọc', 'index.php?controller=bangiao&action=index'],
+            ['🧾', 'yêu cầu xác nhận thanh toán chờ duyệt', $__dem("SELECT COUNT(*) FROM lich_su_thanh_toan WHERE trang_thai = 'dang_xu_ly'"), 'Người thuê đã gửi ảnh giao dịch, kiểm tra tiền rồi xác nhận', 'index.php?controller=hoadon&action=index'],
             ['💰', 'hóa đơn chưa thu', $__dem("SELECT COUNT(*) FROM hoa_don WHERE trang_thai = 'chua_tt'"), 'Xem danh sách công nợ', 'index.php?controller=hoadon&action=congNo'],
             ['⚠️', 'khách có nguy cơ rời', (int)$__soCanhBao, 'Xem cảnh báo khách rời', 'index.php?controller=canhbao&action=index'],
             ['⚡', 'báo số điện nước chờ duyệt', (int)$__soBaoChiSoChoDuyet, 'Xem và duyệt chỉ số công tơ AI', 'index.php?controller=hoadon&action=baoChiSoList'],

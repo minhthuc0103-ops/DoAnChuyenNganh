@@ -14,18 +14,52 @@ function selectNT(card) {
   card.style.background  = 'rgba(34,201,147,.06)';
   card.querySelector('.nt-check').style.display = 'inline';
 
-  // Fill form
+  // Fill form: toàn bộ thông tin cá nhân mà hợp đồng cần
   document.getElementById('f_ho_ten').value  = card.dataset.hoten;
   document.getElementById('f_cccd').value     = card.dataset.cccd;
   document.getElementById('f_sdt').value      = card.dataset.sdt;
   const dc = document.querySelector('[name="dia_chi"]');
   if (dc) dc.value = card.dataset.diachi;
+  datNgaySinhChu(card.dataset.ngaysinh);
+  const gt = document.querySelector('[name="gioi_tinh"]');
+  if (gt) gt.value = card.dataset.gioitinh || 'nam';
+  const acc = document.getElementById('f_account_id');
+  if (acc) acc.value = card.dataset.account && card.dataset.account !== '0' ? card.dataset.account : '';
+  let xeDK = [];
+  try { xeDK = JSON.parse(card.dataset.xe || '[]'); } catch (e) { xeDK = []; }
+  datXeChu(xeDK);
   document.getElementById('nguoiThueIdExisting').value = card.dataset.id;
 
   // Hiện badge + nút bỏ chọn
   document.getElementById('ntSelected').textContent = '✓ Đã chọn: ' + card.dataset.hoten;
   document.getElementById('ntSelected').style.display = 'block';
   document.getElementById('ntClearBtn').style.display = 'inline-block';
+}
+
+/** Ghi ô Ngày sinh của người ký (ô dùng flatpickr nên phải set qua API); rỗng thì xóa trắng. */
+function datNgaySinhChu(v) {
+  const el = document.querySelector('[name="ngay_sinh"]');
+  if (!el) return;
+  const gt = (v && v !== '0000-00-00') ? v : '';
+  if (el._flatpickr) {
+    if (gt) { el._flatpickr.setDate(gt, true); } else { el._flatpickr.clear(); }
+  } else {
+    el.value = gt;
+  }
+}
+
+/** Điền (hoặc xóa trắng) 2 dòng xe của người ký từ danh sách xe người thuê đã đăng ký trong hồ sơ. */
+function datXeChu(xeList) {
+  ['chu', 'chu2'].forEach((khoa, i) => {
+    const xe = (xeList && xeList[i]) || null;
+    const bs = document.querySelector('[name="xe_list[' + khoa + '][bien_so]"]');
+    const lx = document.querySelector('[name="xe_list[' + khoa + '][loai_xe]"]');
+    const ms = document.querySelector('[name="xe_list[' + khoa + '][mau_sac]"]');
+    if (bs) bs.value = xe ? xe.bien_so : '';
+    if (lx) lx.value = xe ? xe.loai_xe : 'xe_may';
+    if (ms) ms.value = xe ? (xe.mau_sac || '') : '';
+  });
+  if (typeof capNhatTongNguoiXe === 'function') capNhatTongNguoiXe();
 }
 
 function clearNT() {
@@ -40,10 +74,33 @@ function clearNT() {
   document.getElementById('f_sdt').value     = '';
   const dc = document.querySelector('[name="dia_chi"]');
   if (dc) dc.value = '';
+  datNgaySinhChu('');
+  const gt = document.querySelector('[name="gioi_tinh"]');
+  if (gt) gt.value = 'nam';
+  const acc = document.getElementById('f_account_id');
+  if (acc) acc.value = '';
+  datXeChu([]);
   document.getElementById('nguoiThueIdExisting').value = '';
   document.getElementById('ntSelected').style.display = 'none';
   document.getElementById('ntClearBtn').style.display = 'none';
 }
+
+// Chọn tài khoản ở ô "Liên kết tài khoản user" → tự điền thông tin cá nhân của người đó
+document.addEventListener('DOMContentLoaded', () => {
+  const acc = document.getElementById('f_account_id');
+  if (!acc) return;
+  acc.addEventListener('change', () => {
+    if (!acc.value) return;
+    const card = document.querySelector('.nt-card[data-account="' + acc.value + '"]');
+    if (card) { selectNT(card); return; }           // đã có hồ sơ người thuê: điền đủ mọi thông tin
+    // Chưa có hồ sơ: chỉ lấy được họ tên và SĐT từ tài khoản (không ghi đè nếu admin đã nhập)
+    const opt = acc.options[acc.selectedIndex];
+    const ten = document.getElementById('f_ho_ten');
+    const sdt = document.getElementById('f_sdt');
+    if (ten && !ten.value.trim()) ten.value = opt.dataset.hoten || '';
+    if (sdt && !sdt.value.trim()) sdt.value = opt.dataset.sdt || '';
+  });
+});
 
 function filterNT(kw) {
   const q    = kw.trim().toLowerCase();
@@ -218,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function initCanvas() {
     canvas.width  = canvas.offsetWidth;
     canvas.height = 260;
-    ctx.strokeStyle = '#0f172a';
+    ctx.strokeStyle = '#ffffff';   // nét trắng trên nền tối của ô ký (ảnh lưu vào hợp đồng được đổi sang nét tối ở confirmSig)
     ctx.lineWidth   = 2.8;
     ctx.lineCap     = 'round';
     ctx.lineJoin    = 'round';
@@ -291,11 +348,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.confirmSig = function () {
     if (!hasSig) { alert('Vui lòng ký tên trước khi xác nhận!'); return; }
-    const dataURL = canvas.toDataURL('image/png');
-    document.getElementById('sigData').value            = dataURL;
+    /* Xem trước: giữ nét trắng như lúc ký */
+    const previewURL = canvas.toDataURL('image/png');
+
+    /* Ảnh LƯU vào hợp đồng: đổi mọi nét vẽ sang màu tối (giữ nền trong suốt) để vẫn đọc được trên giấy trắng khi in */
+    const out = document.createElement('canvas');
+    out.width = canvas.width; out.height = canvas.height;
+    const octx = out.getContext('2d');
+    octx.drawImage(canvas, 0, 0);
+    octx.globalCompositeOperation = 'source-in';
+    octx.fillStyle = '#0f172a';
+    octx.fillRect(0, 0, out.width, out.height);
+    document.getElementById('sigData').value = out.toDataURL('image/png');
+
     /* Hiện thumbnail */
     const img  = document.getElementById('sigPreviewImg');
-    img.src    = dataURL;
+    img.src    = previewURL;
     img.style.display = 'block';
     document.getElementById('sigPreviewEmpty').style.display = 'none';
     document.getElementById('sigDoneLabel').style.display    = 'block';

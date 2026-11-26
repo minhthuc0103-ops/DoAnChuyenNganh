@@ -159,6 +159,18 @@ if errorlevel 1 (
     %PAUSE_CMD%
     exit /b 1
 )
+"%MYSQL%" -u root --default-character-set=utf8mb4 ql_phong_tro < "backend\database\migrations\upgrade_thanh_toan_chung_tu.sql"
+if errorlevel 1 (
+    echo [LOI] upgrade_thanh_toan_chung_tu.sql that bai.
+    %PAUSE_CMD%
+    exit /b 1
+)
+"%MYSQL%" -u root --default-character-set=utf8mb4 ql_phong_tro < "backend\database\migrations\upgrade_xe_dang_ky.sql"
+if errorlevel 1 (
+    echo [LOI] upgrade_xe_dang_ky.sql that bai.
+    %PAUSE_CMD%
+    exit /b 1
+)
 
 echo.
 echo ------------------ KET QUA ------------------

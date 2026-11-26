@@ -88,6 +88,9 @@ class HopDongController {
              ORDER BY ho_ten, username"
         )->fetchAll();
 
+        // Xe người dùng đã tự đăng ký trong hồ sơ: [account_id => [xe...]], tự điền vào form khi chọn người đó
+        $xeDangKyMap = (new XeDangKyModel())->getByAccounts(array_column($nguoiThueList, 'account_id'));
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Csrf::check();
             $phong_id  = (int)($_POST['phong_id']   ?? 0);
@@ -149,11 +152,17 @@ class HopDongController {
                     $account_id = (int)$linkStmt->fetchColumn();
                 }
 
+                // Ngày sinh / giới tính nhập ở form cũng được lưu vào hồ sơ người thuê (để lưu trú, CT01 dùng lại)
+                $ns = trim($_POST['ngay_sinh'] ?? '');
+                $nsOk = ($d = \DateTime::createFromFormat('Y-m-d', $ns)) && $d->format('Y-m-d') === $ns ? $ns : null;
+                $gtOk = in_array($_POST['gioi_tinh'] ?? '', ['nam', 'nu', 'khac'], true) ? $_POST['gioi_tinh'] : null;
+
                 $db->prepare(
                     "UPDATE nguoi_thue
-                     SET ho_ten=?, cccd=?, sdt=?, dia_chi=?, account_id=COALESCE(NULLIF(?, 0), account_id)
+                     SET ho_ten=?, cccd=?, sdt=?, dia_chi=?, account_id=COALESCE(NULLIF(?, 0), account_id),
+                         ngay_sinh=COALESCE(?, ngay_sinh), gioi_tinh=COALESCE(?, gioi_tinh)
                      WHERE id=?"
-                )->execute([$ho_ten, $cccd, $sdt, $dia_chi, $account_id, $nguoi_thue_id]);
+                )->execute([$ho_ten, $cccd, $sdt, $dia_chi, $account_id, $nsOk, $gtOk, $nguoi_thue_id]);
 
                 // 2. Tạo hợp đồng
                 $this->model->create($phong_id, $nguoi_thue_id, $ngay_bd, $ngay_kt, $tien_coc, $ghi_chu);

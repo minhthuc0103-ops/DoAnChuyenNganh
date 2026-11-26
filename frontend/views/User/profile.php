@@ -221,14 +221,83 @@ $init  = mb_strtoupper(mb_substr(end($parts), 0, 1, 'UTF-8'), 'UTF-8');
 
     <!-- Tab: Xe của tôi -->
     <div id="panelXe" style="display:none;">
+
+      <!-- Xe tự đăng ký: khi quản lý tạo hợp đồng, thông tin xe này được điền sẵn vào hợp đồng -->
+      <?php
+        $loaiXeLabel = ['xe_may'=>'🏍 Xe máy','xe_dien'=>'⚡ Xe điện','xe_dap'=>'🚲 Xe đạp','o_to'=>'🚗 Ô tô'];
+        $xeDangKy = $xeDangKy ?? [];
+        $bienSoTrongHD = $bienSoTrongHD ?? [];
+        $conCho = count($xeDangKy) < XeDangKyModel::TOI_DA;
+      ?>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+          <div class="card-title">🏍 Xe tôi đăng ký</div>
+          <div class="card-sub"><?= count($xeDangKy) ?>/<?= XeDangKyModel::TOI_DA ?> xe · tự điền vào hợp đồng khi quản lý lập hợp đồng cho bạn</div>
+        </div>
+        <div class="card-body">
+          <?php if(!empty($xeDangKy)): ?>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+            <?php foreach($xeDangKy as $x): $daVao = in_array(strtoupper(trim($x['bien_so'])), $bienSoTrongHD, true); ?>
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--bg3);border-radius:12px;border:1px solid var(--border);">
+              <div style="font-size:15px;font-weight:800;color:var(--text);letter-spacing:.5px;font-family:monospace;"><?= htmlspecialchars($x['bien_so']) ?></div>
+              <div style="flex:1;min-width:0;font-size:12px;color:var(--text3);">
+                <?= $loaiXeLabel[$x['loai_xe']] ?? htmlspecialchars($x['loai_xe']) ?><?= !empty($x['mau_sac']) ? ' · ' . htmlspecialchars($x['mau_sac']) : '' ?>
+              </div>
+              <?php if($daVao): ?>
+              <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(34,201,147,.12);color:var(--green);">✓ Đang gửi tại phòng</span>
+              <?php endif; ?>
+              <form method="POST" style="margin:0;" onsubmit="return confirm('Xóa xe <?= htmlspecialchars($x['bien_so'], ENT_QUOTES) ?> khỏi danh sách đăng ký?')">
+                <?= Csrf::field() ?>
+                <input type="hidden" name="_action" value="delete_xe"/>
+                <input type="hidden" name="xe_id" value="<?= (int)$x['id'] ?>"/>
+                <button type="submit" class="btn btn-outline btn-xs" style="color:var(--red);" title="Xóa xe">🗑</button>
+              </form>
+            </div>
+            <?php endforeach; ?>
+          </div>
+          <?php else: ?>
+          <div style="text-align:center;padding:14px 10px 18px;color:var(--text3);font-size:13px;">Bạn chưa đăng ký xe nào.</div>
+          <?php endif; ?>
+
+          <?php if($conCho): ?>
+          <form method="POST" style="padding:14px;background:rgba(79,142,247,.04);border:1px dashed rgba(79,142,247,.3);border-radius:12px;">
+            <?= Csrf::field() ?>
+            <input type="hidden" name="_action" value="add_xe"/>
+            <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px;">＋ Đăng ký xe mới</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;">
+              <div>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:4px;">Biển số <span style="color:var(--red)">*</span></label>
+                <input class="form-control" type="text" name="bien_so" required maxlength="15" placeholder="51F1-23456"
+                       style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"/>
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:4px;">Loại xe</label>
+                <select class="form-control" name="loai_xe">
+                  <?php foreach($loaiXeLabel as $v => $l): ?><option value="<?= $v ?>"><?= $l ?></option><?php endforeach; ?>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:4px;">Tên xe</label>
+                <input class="form-control" type="text" name="mau_sac" maxlength="50" placeholder="Wave Alpha, Exciter..."/>
+              </div>
+              <button type="submit" class="btn btn-primary" style="justify-content:center;">Đăng ký xe</button>
+            </div>
+          </form>
+          <?php else: ?>
+          <div style="font-size:12px;color:var(--amber);text-align:center;">Đã đủ <?= XeDangKyModel::TOI_DA ?> xe. Xóa một xe nếu muốn đăng ký xe khác.</div>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <!-- Xe đang nằm trong hợp đồng (do quản lý lập) -->
       <div class="card">
-        <div class="card-header"><div class="card-title">🏍 Xe đăng ký của tôi</div></div>
+        <div class="card-header"><div class="card-title">📄 Xe trong hợp đồng</div></div>
         <div class="card-body">
           <?php if(empty($xeList)): ?>
-          <div style="text-align:center;padding:40px 20px;color:var(--text3);">
-            <div style="font-size:48px;margin-bottom:12px;">🏍</div>
-            <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;">Chưa có xe đăng ký</div>
-            <div style="font-size:12px;">Xe sẽ được đăng ký khi tạo hợp đồng thuê phòng</div>
+          <div style="text-align:center;padding:30px 20px;color:var(--text3);">
+            <div style="font-size:40px;margin-bottom:10px;">🏍</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;">Chưa có xe nào trong hợp đồng</div>
+            <div style="font-size:12px;">Xe bạn đăng ký ở trên sẽ được điền sẵn khi quản lý tạo hợp đồng thuê phòng</div>
           </div>
           <?php else: ?>
           <div style="display:flex;flex-direction:column;gap:10px;">
@@ -269,7 +338,7 @@ $init  = mb_strtoupper(mb_substr(end($parts), 0, 1, 'UTF-8'), 'UTF-8');
             <?php endforeach; ?>
           </div>
           <div style="font-size:11px;color:var(--text3);margin-top:12px;text-align:center;">
-            Để thêm/sửa xe, liên hệ quản lý hoặc cập nhật khi ký hợp đồng mới
+            Muốn đổi xe đang gửi tại phòng, liên hệ quản lý để cập nhật hợp đồng
           </div>
           <?php endif; ?>
         </div>
@@ -398,6 +467,9 @@ function previewCCCD(input, imgId, phId) {
 
 <?php if($error && str_contains($error,'mật khẩu')): ?>
 switchTab('pass');
+<?php endif; ?>
+<?php if(($tabMo ?? '') === 'xe'): ?>
+switchTab('xe');   // vừa thêm/xóa xe: ở lại tab Xe của tôi
 <?php endif; ?>
 </script>
 
