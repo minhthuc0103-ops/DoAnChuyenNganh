@@ -3,7 +3,7 @@ setlocal
 title CHAY APP QUAN LY PHONG TRO
 
 rem ===== Duong dan XAMPP cua ban (da dung theo may ban) =====
-set "XAMPP=C:\minhthuc\xampp"
+set "XAMPP=C:\xampp"
 set "PORT=8000"
 
 rem Chay tai thu muc chua file nay (thu muc du an, noi co index.php)
