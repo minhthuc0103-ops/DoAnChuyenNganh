@@ -207,10 +207,14 @@ class HoaDonController {
         exit;
     }
 
-    // AJAX: lấy chỉ số điện nước cuối cùng của phòng
+    // AJAX: lấy chỉ số điện nước cũ đã ghi nhớ của phòng
     public function getChiSoCu() {
         $phong_id = (int)($_GET['phong_id'] ?? 0);
-        $data = $this->model->getChiSoCuoiCung($phong_id);
+        $thang    = isset($_GET['thang']) ? (int)$_GET['thang'] : null;
+        $nam      = isset($_GET['nam'])   ? (int)$_GET['nam']   : null;
+        $data = $this->model->getChiSoCuoiCung($phong_id, $thang, $nam);
+        $data['dien'] = (float)($data['chi_so_dien_moi'] ?? 0);
+        $data['nuoc'] = (float)($data['chi_so_nuoc_moi'] ?? 0);
         // Đếm xe đang có trong hợp đồng hiệu lực
         $db = Database::getInstance();
         $sXe = $db->prepare("SELECT COUNT(*) FROM xe x JOIN hop_dong hd ON x.hop_dong_id=hd.id WHERE hd.phong_id=? AND hd.trang_thai='hieu_luc'");
@@ -218,6 +222,299 @@ class HoaDonController {
         $data['so_xe'] = (int)$sXe->fetchColumn();
         header('Content-Type: application/json');
         echo json_encode($data);
+        exit;
+    }
+
+    /**
+     * Tự động tạo hoặc cập nhật hóa đơn từ chỉ số điện nước (dùng cho AI Vision / Báo chỉ số)
+     * Nguyên tắc: Luôn lấy Chỉ số cũ đã ghi nhớ của phòng, và tính Tiêu thụ = (Chỉ số mới trên công tơ - Chỉ số cũ).
+     */
+    public function autoCreateOrUpdateInvoice(array $params): array {
+        $phong_id = (int)($params['phong_id'] ?? 0);
+        $thang    = (int)($params['thang']    ?? date('m'));
+        $nam      = (int)($params['nam']      ?? date('Y'));
+        if (!$phong_id) {
+            return ['ok' => false, 'hoa_don_id' => null, 'action' => 'none', 'message' => 'Chưa chọn phòng để tạo hóa đơn.'];
+        }
+
+        $p = $this->phongModel->getById($phong_id);
+        if (!$p) {
+            return ['ok' => false, 'hoa_don_id' => null, 'action' => 'none', 'message' => 'Phòng không tồn tại!'];
+        }
+        if (!$this->phongCoHopDongHieuLuc($phong_id)) {
+            return ['ok' => false, 'hoa_don_id' => null, 'action' => 'none', 'message' => 'Phòng chưa có hợp đồng hiệu lực để tạo hóa đơn.'];
+        }
+
+        $db = Database::getInstance();
+        // Tìm hóa đơn hiện có của tháng/năm này
+        $stmtExist = $db->prepare("SELECT * FROM hoa_don WHERE phong_id=? AND thang=? AND nam=? LIMIT 1");
+        $stmtExist->execute([$phong_id, $thang, $nam]);
+        $existingHd = $stmtExist->fetch();
+
+        // Lấy thông tin chỉ số cũ đã ghi nhớ của phòng
+        $prevRow          = $this->model->getChiSoCuoiCung($phong_id, $thang, $nam);
+        $dienKyTruoc      = (float)($prevRow['chi_so_dien_ky_truoc'] ?? 0);
+        $nuocKyTruoc      = (float)($prevRow['chi_so_nuoc_ky_truoc'] ?? 0);
+        $dienGanNhat      = (float)($prevRow['chi_so_dien_gan_nhat'] ?? 0);
+        $nuocGanNhat      = (float)($prevRow['chi_so_nuoc_gan_nhat'] ?? 0);
+
+        $paramDienCu = (isset($params['chi_so_dien_cu']) && $params['chi_so_dien_cu'] !== '' && $params['chi_so_dien_cu'] !== null)
+            ? (float)$params['chi_so_dien_cu'] : 0.0;
+        $paramNuocCu = (isset($params['chi_so_nuoc_cu']) && $params['chi_so_nuoc_cu'] !== '' && $params['chi_so_nuoc_cu'] !== null)
+            ? (float)$params['chi_so_nuoc_cu'] : 0.0;
+
+        $hasNewDienScan = isset($params['chi_so_dien_moi']) && $params['chi_so_dien_moi'] !== '' && $params['chi_so_dien_moi'] !== null;
+        $hasNewNuocScan = isset($params['chi_so_nuoc_moi']) && $params['chi_so_nuoc_moi'] !== '' && $params['chi_so_nuoc_moi'] !== null;
+
+        // 1. XỬ LÝ CHỈ SỐ ĐIỆN (Số mới - Số cũ đã nhớ)
+        if ($hasNewDienScan) {
+            $dm = (float)$params['chi_so_dien_moi'];
+            // Xác định số điện cũ đã nhớ:
+            // - Nếu người dùng đã từng quét 1 lần trước đó (ví dụ lần 1 quét được 150, lần 2 quét ảnh mới là 210 > 150):
+            //   lấy số đã nhớ 150 làm Số cũ, và 210 làm Số mới -> Tiêu thụ = 210 - 150 = 60!
+            // - Nếu hóa đơn hiện tại đang bị (chi_so_dien_cu == chi_so_dien_moi) do lần trước chưa có số cũ:
+            //   khi quét số mới khác số cũ, tự động đẩy số trước đó sang làm Số cũ!
+            if ($existingHd && (float)$existingHd['chi_so_dien_moi'] > 0 && $dm > (float)$existingHd['chi_so_dien_moi']) {
+                $dc = (float)$existingHd['chi_so_dien_moi'];
+            } elseif ($dienKyTruoc > 0 && $dm >= $dienKyTruoc) {
+                $dc = $dienKyTruoc;
+            } elseif ($paramDienCu > 0 && $paramDienCu < $dm) {
+                $dc = $paramDienCu;
+            } elseif ($existingHd && (float)$existingHd['chi_so_dien_cu'] > 0 && (float)$existingHd['chi_so_dien_cu'] < $dm) {
+                $dc = (float)$existingHd['chi_so_dien_cu'];
+            } elseif ($dienGanNhat > 0 && $dienGanNhat < $dm) {
+                $dc = $dienGanNhat;
+            } else {
+                $dc = $paramDienCu > 0 ? $paramDienCu : ($dienKyTruoc > 0 ? $dienKyTruoc : 0.0);
+            }
+        } else {
+            // Không quét điện ở lượt này (ví dụ đang quét đồng hồ nước): giữ nguyên chỉ số điện của hóa đơn hiện tại
+            if ($existingHd) {
+                $dc = (float)$existingHd['chi_so_dien_cu'];
+                $dm = (float)$existingHd['chi_so_dien_moi'];
+            } else {
+                $dc = $dienKyTruoc > 0 ? $dienKyTruoc : ($paramDienCu > 0 ? $paramDienCu : $dienGanNhat);
+                $dm = $dc;
+            }
+        }
+
+        // 2. XỬ LÝ CHỈ SỐ NƯỚC (Số mới - Số cũ đã nhớ)
+        if ($hasNewNuocScan) {
+            $nm = (float)$params['chi_so_nuoc_moi'];
+            if ($existingHd && (float)$existingHd['chi_so_nuoc_moi'] > 0 && $nm > (float)$existingHd['chi_so_nuoc_moi']) {
+                $nc = (float)$existingHd['chi_so_nuoc_moi'];
+            } elseif ($nuocKyTruoc > 0 && $nm >= $nuocKyTruoc) {
+                $nc = $nuocKyTruoc;
+            } elseif ($paramNuocCu > 0 && $paramNuocCu < $nm) {
+                $nc = $paramNuocCu;
+            } elseif ($existingHd && (float)$existingHd['chi_so_nuoc_cu'] > 0 && (float)$existingHd['chi_so_nuoc_cu'] < $nm) {
+                $nc = (float)$existingHd['chi_so_nuoc_cu'];
+            } elseif ($nuocGanNhat > 0 && $nuocGanNhat < $nm) {
+                $nc = $nuocGanNhat;
+            } else {
+                $nc = $paramNuocCu > 0 ? $paramNuocCu : ($nuocKyTruoc > 0 ? $nuocKyTruoc : 0.0);
+            }
+        } else {
+            if ($existingHd) {
+                $nc = (float)$existingHd['chi_so_nuoc_cu'];
+                $nm = (float)$existingHd['chi_so_nuoc_moi'];
+            } else {
+                $nc = $nuocKyTruoc > 0 ? $nuocKyTruoc : ($paramNuocCu > 0 ? $paramNuocCu : $nuocGanNhat);
+                $nm = $nc;
+            }
+        }
+
+        // Nếu số mới quét nhỏ hơn số cũ thì cảnh báo
+        if ($hasNewDienScan && $dm < $dc) {
+            return [
+                'ok' => false,
+                'hoa_don_id' => $existingHd ? (int)$existingHd['id'] : null,
+                'action' => 'none',
+                'message' => "Chỉ số công tơ điện mới ($dm kWh) nhỏ hơn chỉ số điện cũ đã ghi nhớ ($dc kWh)!"
+            ];
+        }
+        if ($hasNewNuocScan && $nm < $nc) {
+            return [
+                'ok' => false,
+                'hoa_don_id' => $existingHd ? (int)$existingHd['id'] : null,
+                'action' => 'none',
+                'message' => "Chỉ số công tơ nước mới ($nm m³) nhỏ hơn chỉ số nước cũ đã ghi nhớ ($nc m³)!"
+            ];
+        }
+
+        $donGia = $this->donGiaModel->getCurrent();
+        // Lượng tiêu thụ = Số công tơ mới - Số công tơ cũ
+        $dienTieuThu = round(max(0, $dm - $dc), 2);
+        $nuocTieuThu = round(max(0, $nm - $nc), 2);
+        $td     = $dienTieuThu * (float)$donGia['gia_dien'];
+        $tn     = $nuocTieuThu * (float)$donGia['gia_nuoc'];
+        $phi_dv = (float)($donGia['phi_dv'] ?? 150000);
+
+        $sXe = $db->prepare("SELECT COUNT(*) FROM xe x JOIN hop_dong hd ON x.hop_dong_id=hd.id WHERE hd.phong_id=? AND hd.trang_thai='hieu_luc'");
+        $sXe->execute([$phong_id]);
+        $so_xe  = (int)$sXe->fetchColumn();
+        $phi_xe = $so_xe * 100000;
+        $tien_phong = (float)$p['gia'];
+        $tong_tien  = $tien_phong + $td + $tn + $phi_dv + $phi_xe;
+
+        $anh_dien = !empty($params['anh_cong_to_dien'])
+            ? $params['anh_cong_to_dien']
+            : ($existingHd['anh_cong_to_dien'] ?? null);
+        $anh_nuoc = !empty($params['anh_cong_to_nuoc'])
+            ? $params['anh_cong_to_nuoc']
+            : ($existingHd['anh_cong_to_nuoc'] ?? null);
+        $bcs_id   = (int)($params['bao_chi_so_id'] ?? 0);
+
+        $chiTietDienNuoc = "Điện: $dm - $dc = {$dienTieuThu} kWh (" . number_format($td) . "đ) · Nước: $nm - $nc = {$nuocTieuThu} m³ (" . number_format($tn) . "đ)";
+
+        if ($existingHd) {
+            if ($existingHd['trang_thai'] === 'da_tt') {
+                return [
+                    'ok' => false,
+                    'hoa_don_id' => (int)$existingHd['id'],
+                    'action' => 'none',
+                    'message' => "Hóa đơn phòng {$p['so_phong']} tháng $thang/$nam đã thanh toán, không thể ghi đè tự động."
+                ];
+            }
+            $uStmt = $db->prepare(
+                "UPDATE hoa_don
+                 SET chi_so_dien_cu=?, chi_so_dien_moi=?, anh_cong_to_dien=?,
+                     chi_so_nuoc_cu=?, chi_so_nuoc_moi=?, anh_cong_to_nuoc=?,
+                     tien_phong=?, tien_dien=?, tien_nuoc=?, phi_dich_vu=?, phi_xe=?, so_xe=?, tong_tien=?
+                 WHERE id=?"
+            );
+            $uStmt->execute([
+                $dc, $dm, $anh_dien,
+                $nc, $nm, $anh_nuoc,
+                $tien_phong, $td, $tn, $phi_dv, $phi_xe, $so_xe, $tong_tien,
+                (int)$existingHd['id']
+            ]);
+            // Lưu chỉ số công tơ hiện tại vào bảng phong để ghi nhớ cho kỳ sau
+            $this->model->luuChiSoDongHoHienTai($phong_id, $dm, $nm);
+            if ($bcs_id) {
+                (new BaoChiSoModel())->updateStatus($bcs_id, 'da_duyet');
+            }
+            $hoaDonId = (int)$existingHd['id'];
+            return [
+                'ok' => true,
+                'hoa_don_id' => $hoaDonId,
+                'action' => 'updated',
+                'message' => "Đã cập nhật hóa đơn #$hoaDonId (Phòng {$p['so_phong']} - T$thang/$nam) | $chiTietDienNuoc | Tổng: " . number_format($tong_tien) . "đ",
+                'data' => [
+                    'id' => $hoaDonId,
+                    'phong_id' => $phong_id,
+                    'so_phong' => $p['so_phong'],
+                    'thang' => $thang,
+                    'nam' => $nam,
+                    'chi_so_dien_cu' => $dc,
+                    'chi_so_dien_moi' => $dm,
+                    'dien_tieu_thu' => $dienTieuThu,
+                    'chi_so_nuoc_cu' => $nc,
+                    'chi_so_nuoc_moi' => $nm,
+                    'nuoc_tieu_thu' => $nuocTieuThu,
+                    'tien_phong' => $tien_phong,
+                    'tien_dien' => $td,
+                    'tien_nuoc' => $tn,
+                    'phi_dich_vu' => $phi_dv,
+                    'phi_xe' => $phi_xe,
+                    'so_xe' => $so_xe,
+                    'tong_tien' => $tong_tien,
+                ]
+            ];
+        }
+
+        $created = $this->model->create([
+            'phong_id'         => $phong_id, 'thang' => $thang, 'nam' => $nam,
+            'chi_so_dien_cu'   => $dc, 'chi_so_dien_moi' => $dm,
+            'anh_cong_to_dien' => $anh_dien ?: null,
+            'chi_so_nuoc_cu'   => $nc, 'chi_so_nuoc_moi' => $nm,
+            'anh_cong_to_nuoc' => $anh_nuoc ?: null,
+            'tien_phong'       => $tien_phong,
+            'tien_dien'        => $td, 'tien_nuoc' => $tn,
+            'phi_dich_vu'      => $phi_dv,
+            'phi_xe'           => $phi_xe,
+            'so_xe'            => $so_xe,
+            'tong_tien'        => $tong_tien,
+        ]);
+
+        if (!$created) {
+            return ['ok' => false, 'hoa_don_id' => null, 'action' => 'none', 'message' => 'Lỗi lưu hóa đơn vào CSDL.'];
+        }
+
+        if ($bcs_id) {
+            (new BaoChiSoModel())->updateStatus($bcs_id, 'da_duyet');
+        }
+        $hoaDonId = $this->model->getLastInsertId();
+        try {
+            $this->taoThongBaoDongTien($phong_id, $p['so_phong'] ?? '', $thang, $nam, $tong_tien, $hoaDonId);
+        } catch (\Throwable $e) {
+            error_log('Tao thong bao hoa don loi: ' . $e->getMessage());
+        }
+        try {
+            HoaDonThongBao::guiHoaDon($hoaDonId, true);
+        } catch (\Throwable $e) {
+            error_log('Gui hoa don tu dong loi: ' . $e->getMessage());
+        }
+
+        return [
+            'ok' => true,
+            'hoa_don_id' => $hoaDonId,
+            'action' => 'created',
+            'message' => "Đã tạo hóa đơn #$hoaDonId (Phòng {$p['so_phong']} - T$thang/$nam) | $chiTietDienNuoc | Tổng: " . number_format($tong_tien) . "đ",
+            'data' => [
+                'id' => $hoaDonId,
+                'phong_id' => $phong_id,
+                'so_phong' => $p['so_phong'],
+                'thang' => $thang,
+                'nam' => $nam,
+                'chi_so_dien_cu' => $dc,
+                'chi_so_dien_moi' => $dm,
+                'dien_tieu_thu' => $dienTieuThu,
+                'chi_so_nuoc_cu' => $nc,
+                'chi_so_nuoc_moi' => $nm,
+                'nuoc_tieu_thu' => $nuocTieuThu,
+                'tien_phong' => $tien_phong,
+                'tien_dien' => $td,
+                'tien_nuoc' => $tn,
+                'phi_dich_vu' => $phi_dv,
+                'phi_xe' => $phi_xe,
+                'so_xe' => $so_xe,
+                'tong_tien' => $tong_tien,
+            ]
+        ];
+    }
+
+    /**
+     * Duyệt nhanh báo chỉ số từ danh sách và tạo hóa đơn ngay (1 click)
+     */
+    public function duyetNhanhBaoChiSo() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?controller=hoadon&action=baoChiSoList');
+            exit;
+        }
+        Csrf::check();
+        $id = (int)($_POST['id'] ?? 0);
+        $bcsModel = new BaoChiSoModel();
+        $bcs = $id ? $bcsModel->getById($id) : null;
+        if (!$bcs) {
+            header('Location: index.php?controller=hoadon&action=baoChiSoList&msg=not_found');
+            exit;
+        }
+        $res = $this->autoCreateOrUpdateInvoice([
+            'phong_id'         => (int)$bcs['phong_id'],
+            'thang'            => (int)$bcs['thang'],
+            'nam'              => (int)$bcs['nam'],
+            'chi_so_dien_moi'  => (float)$bcs['chi_so_dien'],
+            'chi_so_nuoc_moi'  => (float)$bcs['chi_so_nuoc'],
+            'anh_cong_to_dien' => $bcs['anh_cong_to_dien'] ?? null,
+            'anh_cong_to_nuoc' => $bcs['anh_cong_to_nuoc'] ?? null,
+            'bao_chi_so_id'    => (int)$bcs['id'],
+        ]);
+        if ($res['ok'] && !empty($res['hoa_don_id'])) {
+            header('Location: index.php?controller=hoadon&action=chiTiet&id=' . (int)$res['hoa_don_id'] . '&msg=auto_created');
+            exit;
+        }
+        header('Location: index.php?controller=hoadon&action=baoChiSoList&err=' . urlencode($res['message'] ?? 'Không thể tạo hóa đơn'));
         exit;
     }
 
