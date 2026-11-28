@@ -28,7 +28,7 @@ $__thanhToanMacDinh = [
     'BANK_DISPLAY'    => 'ACB',                // tên ngân hàng hiển thị
     'VIETQR_TEMPLATE' => 'compact2',
     // Ảnh QR riêng cho ví/cổng thanh toán. Thay bằng ảnh QR thật của bạn.
-    'MOMO_QR_IMAGE'   => 'public/uploads/payment/momo_qr.png',
+    'MOMO_QR_IMAGE'   => 'public/uploads/payment/momo_qr_rieng.png',   // QR MoMo dùng chung cho cả nhóm
     'VNPAY_QR_IMAGE'  => 'public/uploads/payment/vnpay_qr.png',
 ];
 foreach ($__thanhToanMacDinh as $__k => $__v) {
