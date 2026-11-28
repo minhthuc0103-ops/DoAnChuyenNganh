@@ -268,19 +268,32 @@ class HoaDonController {
 
         // 1. XỬ LÝ CHỈ SỐ ĐIỆN (Số mới - Số cũ đã nhớ)
         if ($hasNewDienScan) {
-            $dm = (float)$params['chi_so_dien_moi'];
+            $dm = round((float)$params['chi_so_dien_moi'], 2);
             // Xác định số điện cũ đã nhớ:
-            // - Nếu người dùng đã từng quét 1 lần trước đó (ví dụ lần 1 quét được 150, lần 2 quét ảnh mới là 210 > 150):
-            //   lấy số đã nhớ 150 làm Số cũ, và 210 làm Số mới -> Tiêu thụ = 210 - 150 = 60!
-            // - Nếu hóa đơn hiện tại đang bị (chi_so_dien_cu == chi_so_dien_moi) do lần trước chưa có số cũ:
-            //   khi quét số mới khác số cũ, tự động đẩy số trước đó sang làm Số cũ!
-            if ($existingHd && (float)$existingHd['chi_so_dien_moi'] > 0 && $dm > (float)$existingHd['chi_so_dien_moi']) {
-                $dc = (float)$existingHd['chi_so_dien_moi'];
+            // - Ưu tiên 1: Nếu trên hóa đơn hiện tại đã có chi_so_dien_moi (> 0) từ lần quét ảnh thứ nhất (ví dụ 475.8),
+            //   và bây giờ người dùng quét ảnh thứ hai có chỉ số khác (ví dụ 498.7):
+            //   Nếu ảnh mới > ảnh trước (498.7 > 475.8) -> lấy 475.8 làm Số cũ, 498.7 làm Số mới -> Tiêu thụ = 498.7 - 475.8 = 22.9 kWh!
+            //   Nếu ảnh vừa quét nhỏ hơn ảnh đang lưu ở chi_so_dien_moi (ví dụ quét ảnh 498.7 trước rồi quét ảnh 475.8 sau):
+            //   tự động xếp số nhỏ (475.8) làm Số cũ và số lớn (498.7) làm Số mới!
+            if ($existingHd && (float)$existingHd['chi_so_dien_moi'] > 0 && abs($dm - (float)$existingHd['chi_so_dien_moi']) > 0.001) {
+                $prevScanned = (float)$existingHd['chi_so_dien_moi'];
+                if ($dm > $prevScanned) {
+                    $dc = $prevScanned;
+                } else {
+                    // Người dùng tải ảnh số mới trước rồi mới tải ảnh số cũ -> đảo lại cho đúng (Số lớn là Mới, Số nhỏ là Cũ)
+                    $dc = $dm;
+                    $dm = $prevScanned;
+                }
+            } elseif ($paramDienCu > 0 && abs($paramDienCu - $dm) > 0.001) {
+                if ($dm > $paramDienCu) {
+                    $dc = $paramDienCu;
+                } else {
+                    $dc = $dm;
+                    $dm = $paramDienCu;
+                }
             } elseif ($dienKyTruoc > 0 && $dm >= $dienKyTruoc) {
                 $dc = $dienKyTruoc;
-            } elseif ($paramDienCu > 0 && $paramDienCu < $dm) {
-                $dc = $paramDienCu;
-            } elseif ($existingHd && (float)$existingHd['chi_so_dien_cu'] > 0 && (float)$existingHd['chi_so_dien_cu'] < $dm) {
+            } elseif ($existingHd && (float)$existingHd['chi_so_dien_cu'] > 0 && (float)$existingHd['chi_so_dien_cu'] <= $dm) {
                 $dc = (float)$existingHd['chi_so_dien_cu'];
             } elseif ($dienGanNhat > 0 && $dienGanNhat < $dm) {
                 $dc = $dienGanNhat;
@@ -300,14 +313,25 @@ class HoaDonController {
 
         // 2. XỬ LÝ CHỈ SỐ NƯỚC (Số mới - Số cũ đã nhớ)
         if ($hasNewNuocScan) {
-            $nm = (float)$params['chi_so_nuoc_moi'];
-            if ($existingHd && (float)$existingHd['chi_so_nuoc_moi'] > 0 && $nm > (float)$existingHd['chi_so_nuoc_moi']) {
-                $nc = (float)$existingHd['chi_so_nuoc_moi'];
+            $nm = round((float)$params['chi_so_nuoc_moi'], 2);
+            if ($existingHd && (float)$existingHd['chi_so_nuoc_moi'] > 0 && abs($nm - (float)$existingHd['chi_so_nuoc_moi']) > 0.001) {
+                $prevScannedNuoc = (float)$existingHd['chi_so_nuoc_moi'];
+                if ($nm > $prevScannedNuoc) {
+                    $nc = $prevScannedNuoc;
+                } else {
+                    $nc = $nm;
+                    $nm = $prevScannedNuoc;
+                }
+            } elseif ($paramNuocCu > 0 && abs($paramNuocCu - $nm) > 0.001) {
+                if ($nm > $paramNuocCu) {
+                    $nc = $paramNuocCu;
+                } else {
+                    $nc = $nm;
+                    $nm = $paramNuocCu;
+                }
             } elseif ($nuocKyTruoc > 0 && $nm >= $nuocKyTruoc) {
                 $nc = $nuocKyTruoc;
-            } elseif ($paramNuocCu > 0 && $paramNuocCu < $nm) {
-                $nc = $paramNuocCu;
-            } elseif ($existingHd && (float)$existingHd['chi_so_nuoc_cu'] > 0 && (float)$existingHd['chi_so_nuoc_cu'] < $nm) {
+            } elseif ($existingHd && (float)$existingHd['chi_so_nuoc_cu'] > 0 && (float)$existingHd['chi_so_nuoc_cu'] <= $nm) {
                 $nc = (float)$existingHd['chi_so_nuoc_cu'];
             } elseif ($nuocGanNhat > 0 && $nuocGanNhat < $nm) {
                 $nc = $nuocGanNhat;

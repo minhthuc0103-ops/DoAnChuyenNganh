@@ -305,6 +305,11 @@ async function handleImageUpload(input, type) {
         if (inv) {
           if (inv.chi_so_dien_moi > 0) document.getElementById('val_dien').value = inv.chi_so_dien_moi;
           if (inv.chi_so_nuoc_moi > 0) document.getElementById('val_nuoc').value = inv.chi_so_nuoc_moi;
+          if (type === 'dien' && inv.chi_so_dien_moi > 0) {
+            statusElem.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ AI đọc công tơ mới: <strong>${inv.chi_so_dien_moi} kWh</strong> − Số cũ đã nhớ: <strong>${inv.chi_so_dien_cu} kWh</strong> = Tiêu thụ: <strong>${inv.dien_tieu_thu} kWh</strong> (${Math.round(inv.tien_dien).toLocaleString('vi-VN')}đ)</span>`;
+          } else if (type === 'nuoc' && inv.chi_so_nuoc_moi > 0) {
+            statusElem.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ AI đọc công tơ mới: <strong>${inv.chi_so_nuoc_moi} m³</strong> − Số cũ đã nhớ: <strong>${inv.chi_so_nuoc_cu} m³</strong> = Tiêu thụ: <strong>${inv.nuoc_tieu_thu} m³</strong> (${Math.round(inv.tien_nuoc).toLocaleString('vi-VN')}đ)</span>`;
+          }
         }
         const banner = document.getElementById('user_auto_invoice_banner');
         const desc = document.getElementById('user_auto_invoice_desc');
@@ -313,6 +318,7 @@ async function handleImageUpload(input, type) {
         desc.innerHTML = data.invoice.message;
         link.href = `index.php?controller=hoadon&action=chiTiet&id=${data.invoice.hoa_don_id}`;
       }
+      input.value = '';
     } else {
       statusElem.innerHTML = `<span style="color:var(--red);">❌ ${data.message || 'Lỗi xử lý ảnh'}</span>`;
     }

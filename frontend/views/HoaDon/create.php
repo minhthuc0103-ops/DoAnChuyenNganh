@@ -331,6 +331,33 @@ function applyTenantReport() {
   alert('Đã áp dụng chỉ số điện nước từ người thuê thành công!');
 }
 
+// Hàm hỗ trợ cắt vùng cửa sổ mặt số công tơ để Tesseract đọc chính xác dãy số mà không bị nhiễu bởi chữ 220V, 450 vòng/kWh, No. 08124933
+function cropMeterDialToBlob(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        // Vùng cửa sổ mặt số công tơ thường nằm ở trung tâm phía trên (x: 28%..72%, y: 18%..42%)
+        const sx = Math.round(img.width * 0.28);
+        const sy = Math.round(img.height * 0.18);
+        const sw = Math.round(img.width * 0.44);
+        const sh = Math.round(img.height * 0.22);
+        canvas.width = sw;
+        canvas.height = sh;
+        const ctx = canvas.getContext('2d');
+        ctx.filter = 'contrast(1.4) grayscale(1)';
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.95);
+      } catch (e) {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 async function handleOwnerScan(input, type) {
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
@@ -348,19 +375,32 @@ async function handleOwnerScan(input, type) {
   const scanImg = document.getElementById(`scan_img_${type}`);
   const scanStatus = document.getElementById(`scan_status_${type}`);
   const valInput = document.getElementById(`${type}_moi`);
+  const cuInput = document.getElementById(`${type}_cu`);
   const pathHidden = document.getElementById(`anh_cong_to_${type}`);
   const badge = document.getElementById(`${type}_ai_badge`);
 
+  // Nếu trước đó đã quét 1 lần (ô Chỉ số mới đã có số > 0), tự động chuyển số đó sang ô Chỉ số cũ đã ghi nhớ!
+  const prevMoiVal = parseFloat(valInput.value) || 0;
+  if (prevMoiVal > 0) {
+    cuInput.value = prevMoiVal;
+  }
+
   scanBox.style.display = 'block';
   scanImg.src = URL.createObjectURL(file);
-  scanStatus.innerHTML = `<span style="color:var(--accent);">🤖 AI đang phân tích mặt số công tơ và tính toán hóa đơn...</span>`;
+  scanStatus.innerHTML = `<span style="color:var(--accent);">🤖 AI đang phân tích mặt số công tơ và tính toán (Số mới − Số cũ)...</span>`;
 
-  // 1. Client OCR qua Tesseract
+  // 1. Client OCR qua Tesseract (ưu tiên quét vùng cửa sổ mặt số đã cắt + toàn ảnh)
   let ocrClientText = '';
+  let ocrDialText = '';
   try {
     if (window.Tesseract) {
-      const res = await Tesseract.recognize(file, 'eng');
-      ocrClientText = res.data.text || '';
+      const croppedBlob = await cropMeterDialToBlob(file);
+      if (croppedBlob) {
+        const resCrop = await Tesseract.recognize(croppedBlob, 'eng');
+        ocrDialText = (resCrop && resCrop.data && resCrop.data.text) ? resCrop.data.text : '';
+      }
+      const resFull = await Tesseract.recognize(file, 'eng');
+      ocrClientText = (resFull && resFull.data && resFull.data.text) ? resFull.data.text : '';
     }
   } catch(e) {}
 
@@ -370,6 +410,7 @@ async function handleOwnerScan(input, type) {
   formData.append(type === 'dien' ? 'anh_dien' : 'anh_nuoc', file);
   formData.append('type', type);
   formData.append('ocr_text', ocrClientText);
+  formData.append('ocr_dial_text', ocrDialText);
   formData.append('phong_id', phongSel.value || '0');
   formData.append('thang', document.getElementById('sel_thang').value);
   formData.append('nam', document.getElementById('sel_nam').value);
@@ -389,38 +430,40 @@ async function handleOwnerScan(input, type) {
   .then(data => {
     if (data.ok) {
       pathHidden.value = data.file_path;
-      const readingVal = (data.chi_so_moi !== undefined && data.chi_so_moi !== null) ? data.chi_so_moi : data.reading;
-      if (readingVal !== null && readingVal > 0) {
-        valInput.value = readingVal;
-        if (data.chi_so_cu !== undefined && data.chi_so_cu > 0) {
-          document.getElementById(`${type}_cu`).value = data.chi_so_cu;
-        }
-        const curCu = parseFloat(document.getElementById(`${type}_cu`).value) || 0;
-        const usedVal = Math.max(0, readingVal - curCu).toFixed(1);
-        const unit = type === 'dien' ? 'kWh' : 'm³';
-        badge.style.display = 'inline-block';
-        const confPct = data.do_tin_cay ? Math.round(data.do_tin_cay * 100) : 95;
-        scanStatus.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ AI đọc số mới trên công tơ: ${readingVal} ${unit} − Số cũ đã nhớ: ${curCu} ${unit} = Tiêu thụ: ${usedVal} ${unit} (Độ tin cậy: ${confPct}%)</span>`;
-      } else {
-        const nums = ocrClientText.match(/\b\d{3,6}\b/);
-        if (nums && nums[0]) {
-          valInput.value = parseFloat(nums[0]);
-          badge.style.display = 'inline-block';
-          scanStatus.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ Nhận diện số: ${nums[0]} (kiểm tra lại)</span>`;
+      const readingVal = (data.chi_so_moi !== undefined && data.chi_so_moi !== null) ? parseFloat(data.chi_so_moi) : parseFloat(data.reading);
+
+      // Cập nhật từ kết quả hóa đơn server (nếu đã tự động sắp xếp Số mới - Số cũ)
+      if (data.invoice && data.invoice.ok && data.invoice.data) {
+        const inv = data.invoice.data;
+        document.getElementById('dien_cu').value = inv.chi_so_dien_cu;
+        document.getElementById('dien_moi').value = inv.chi_so_dien_moi;
+        document.getElementById('nuoc_cu').value = inv.chi_so_nuoc_cu;
+        document.getElementById('nuoc_moi').value = inv.chi_so_nuoc_moi;
+      } else if (!isNaN(readingVal) && readingVal > 0) {
+        const curCuBefore = parseFloat(cuInput.value) || 0;
+        if (curCuBefore > 0 && readingVal < curCuBefore) {
+          // Nếu quét ảnh có số nhỏ hơn số vừa quét trước đó -> đặt số nhỏ làm Số cũ, số lớn làm Số mới
+          cuInput.value = readingVal;
+          valInput.value = curCuBefore;
         } else {
-          scanStatus.innerHTML = `<span style="color:var(--amber);">⚠️ Đã lưu ảnh. Vui lòng nhìn ảnh và nhập số tương ứng.</span>`;
+          valInput.value = readingVal;
         }
       }
 
-      // Nếu server đã tự động tạo hoặc cập nhật hóa đơn thành công
+      const finalCu  = parseFloat(cuInput.value) || 0;
+      const finalMoi = parseFloat(valInput.value) || 0;
+      const usedVal  = Math.max(0, finalMoi - finalCu).toFixed(1);
+      const unit     = type === 'dien' ? 'kWh' : 'm³';
+      const donGia   = type === 'dien' ? GIA_DIEN : GIA_NUOC;
+      const thanhTien = Math.round(parseFloat(usedVal) * donGia).toLocaleString('vi-VN');
+
+      if (finalMoi > 0) {
+        badge.style.display = 'inline-block';
+        scanStatus.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ AI đã đọc công tơ: <strong>${finalMoi} ${unit}</strong> − Số cũ đã nhớ: <strong>${finalCu} ${unit}</strong> = Tiêu thụ: <strong>${usedVal} ${unit}</strong> (Thành tiền: <strong>${thanhTien}đ</strong>)</span>`;
+      }
+
+      // Hiển thị banner hóa đơn tự động tạo/cập nhật
       if (data.invoice && data.invoice.ok) {
-        const inv = data.invoice.data;
-        if (inv) {
-          document.getElementById('dien_cu').value = inv.chi_so_dien_cu;
-          document.getElementById('dien_moi').value = inv.chi_so_dien_moi;
-          document.getElementById('nuoc_cu').value = inv.chi_so_nuoc_cu;
-          document.getElementById('nuoc_moi').value = inv.chi_so_nuoc_moi;
-        }
         const banner = document.getElementById('auto_invoice_banner');
         const titleEl = document.getElementById('auto_invoice_title');
         const descEl = document.getElementById('auto_invoice_desc');
@@ -430,19 +473,23 @@ async function handleOwnerScan(input, type) {
         titleEl.innerHTML = data.invoice.action === 'created'
           ? '🎉 AI đã tự động TẠO HÓA ĐƠN điện nước thành công!'
           : '🔄 AI đã tự động CẬP NHẬT HÓA ĐƠN điện nước thành công!';
-        descEl.innerHTML = data.invoice.message + ' (Bạn có thể quét tiếp đồng hồ còn lại để cập nhật tự động, hoặc bấm Xem hóa đơn)';
+        descEl.innerHTML = data.invoice.message;
         linkEl.href = `index.php?controller=hoadon&action=chiTiet&id=${data.invoice.hoa_don_id}`;
       } else if (data.invoice && !data.invoice.ok) {
         scanStatus.innerHTML += `<div style="color:var(--amber);margin-top:4px;">ℹ️ ${data.invoice.message}</div>`;
       }
 
       calcTotal();
+      // Reset input file để có thể chọn tiếp ảnh thứ 2 ngay lập tức
+      input.value = '';
     } else {
       scanStatus.innerHTML = `<span style="color:var(--red);">❌ ${data.message || 'Lỗi quét'}</span>`;
+      input.value = '';
     }
   })
   .catch(() => {
     scanStatus.innerHTML = `<span style="color:var(--amber);">⚠️ Đã lưu ảnh. Vui lòng nhập số tương ứng.</span>`;
+    input.value = '';
   });
 }
 

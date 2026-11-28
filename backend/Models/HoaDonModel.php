@@ -94,17 +94,17 @@ class HoaDonModel {
     }
 
     /**
-     * Ghi nhớ chỉ số đồng hồ mới nhất vào bảng phong để kỳ sau tự động lấy làm chỉ số cũ
+     * Ghi nhớ chỉ số đồng hồ mới nhất vào bảng phong để lần quét tiếp theo hoặc kỳ sau tự động lấy làm chỉ số cũ
      */
     public function luuChiSoDongHoHienTai(int $phong_id, float $dien_moi, float $nuoc_moi): void {
         try {
             $stmt = $this->db->prepare(
                 "UPDATE phong
-                 SET chi_so_dien_hien_tai = GREATEST(COALESCE(chi_so_dien_hien_tai, 0), ?),
-                     chi_so_nuoc_hien_tai = GREATEST(COALESCE(chi_so_nuoc_hien_tai, 0), ?)
+                 SET chi_so_dien_hien_tai = IF(? > 0, ?, COALESCE(chi_so_dien_hien_tai, 0)),
+                     chi_so_nuoc_hien_tai = IF(? > 0, ?, COALESCE(chi_so_nuoc_hien_tai, 0))
                  WHERE id = ?"
             );
-            $stmt->execute([$dien_moi, $nuoc_moi, $phong_id]);
+            $stmt->execute([$dien_moi, $dien_moi, $nuoc_moi, $nuoc_moi, $phong_id]);
         } catch (\Throwable $e) {}
     }
 
