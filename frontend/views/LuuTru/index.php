@@ -40,6 +40,8 @@ require_once 'frontend/views/Layouts/header.php';
   <?php endif; ?>
 <?php endif; ?>
 
+<?php require 'frontend/views/Layouts/loc_hop_dong.php'; ?>
+
 <!-- THỐNG KÊ NHANH -->
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px;">
   <div class="card" style="padding:16px;display:flex;align-items:center;gap:14px;">
@@ -77,6 +79,7 @@ require_once 'frontend/views/Layouts/header.php';
   <form method="GET" action="index.php" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
     <input type="hidden" name="controller" value="luutru">
     <input type="hidden" name="action" value="index">
+    <?php if (LocHopDong::xemLichSu()): ?><input type="hidden" name="lich_su" value="1"><?php endif; ?>
 
     <div style="flex:1;min-width:220px;position:relative;">
       <input type="text" name="keyword" id="ltKeyword" class="form-control" autocomplete="off"

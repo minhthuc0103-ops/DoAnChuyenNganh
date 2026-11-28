@@ -32,11 +32,13 @@ $laAdmin = $laAdmin ?? false;
 </div>
 
 <?php if ($laAdmin): ?>
+<?php require 'frontend/views/Layouts/loc_hop_dong.php'; ?>
 <!-- Bộ lọc: xem lịch sử của từng phòng -->
 <div class="card" style="padding:16px;margin-bottom:18px;">
   <form method="GET" action="index.php" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
     <input type="hidden" name="controller" value="hoadon">
     <input type="hidden" name="action" value="lichSu">
+    <?php if (LocHopDong::xemLichSu()): ?><input type="hidden" name="lich_su" value="1"><?php endif; ?>
 
     <select name="khu_id" class="form-control" style="min-width:150px;width:auto;" onchange="this.form.phong_id.value='';this.form.submit()">
       <option value="">— Tất cả khu —</option>

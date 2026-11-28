@@ -30,9 +30,22 @@ function selectNT(card) {
   datXeChu(xeDK);
   document.getElementById('nguoiThueIdExisting').value = card.dataset.id;
 
-  // Hiện badge + nút bỏ chọn
-  document.getElementById('ntSelected').textContent = '✓ Đã chọn: ' + card.dataset.hoten;
-  document.getElementById('ntSelected').style.display = 'block';
+  // Hiện badge + nút bỏ chọn; báo rõ nếu hồ sơ người này còn thiếu gì (vd: tài khoản mới tạo bằng Google chưa cập nhật hồ sơ)
+  const thieu = [];
+  if (!card.dataset.cccd)      thieu.push('CCCD');
+  if (!card.dataset.sdt)       thieu.push('số điện thoại');
+  if (!card.dataset.ngaysinh)  thieu.push('ngày sinh');
+  if (!card.dataset.diachi)    thieu.push('địa chỉ');
+  if (xeDK.length === 0)       thieu.push('xe đăng ký');
+  const tb = document.getElementById('ntSelected');
+  tb.textContent = '✓ Đã chọn: ' + card.dataset.hoten;
+  if (thieu.length) {
+    const canh = document.createElement('div');
+    canh.style.cssText = 'margin-top:6px;font-size:12px;font-weight:500;color:var(--amber);line-height:1.6;';
+    canh.textContent = '⚠ Hồ sơ người này chưa có: ' + thieu.join(', ') + '. Bạn nhập tay vào các ô bên dưới, hoặc nhờ người thuê cập nhật trong "Hồ sơ của tôi" rồi chọn lại.';
+    tb.appendChild(canh);
+  }
+  tb.style.display = 'block';
   document.getElementById('ntClearBtn').style.display = 'inline-block';
 }
 

@@ -17,6 +17,7 @@ $ttMap = [
   </div>
   <a href="index.php?controller=nguoithue&action=index" class="btn btn-outline">← Danh sách người thuê</a>
 </div>
+<?php require 'frontend/views/Layouts/loc_hop_dong.php'; ?>
 
 <?php if (!empty($_GET['err'])): ?>
 <div class="msg-alert msg-error">⚠ <?= htmlspecialchars($_GET['err']) ?></div>

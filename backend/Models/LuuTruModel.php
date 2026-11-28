@@ -29,6 +29,10 @@ class LuuTruModel {
             $sql .= " AND lt.trang_thai = ?";
             $params[] = $filter['trang_thai'];
         }
+        if (!empty($filter['chi_hieu_luc'])) {
+            // Mặc định trang quản trị: chỉ người lưu trú của hợp đồng đang hiệu lực (đến từ ngày hợp đồng bắt đầu)
+            $sql .= " AND " . LocHopDong::theoPhongVaNgay('lt.phong_id', 'lt.ngay_den');
+        }
         if (!empty($filter['keyword'])) {
             $sql .= " AND (lt.ho_ten LIKE ? OR lt.cccd LIKE ? OR lt.sdt LIKE ? OR p.so_phong LIKE ?)";
             $kw = '%' . trim($filter['keyword']) . '%';
@@ -227,10 +231,13 @@ class LuuTruModel {
      * Trả về [đoạn SQL, tham số], dùng với alias bảng `lt` = khai_bao_luu_tru.
      */
     private function userScope(int $account_id): array {
-        $sql = "(lt.phong_id IN (
-                    SELECT hd.phong_id FROM hop_dong hd
+        // Cùng phòng: chỉ bản ghi có ngày đến TỪ ngày bắt đầu hợp đồng hiện tại của người này
+        // (trước đây lấy mọi bản ghi của phòng, nên người thuê mới thấy CCCD/SĐT của người thuê trước).
+        $sql = "(EXISTS (
+                    SELECT 1 FROM hop_dong hd
                     JOIN nguoi_thue n ON hd.nguoi_thue_id = n.id
-                    WHERE n.account_id = ? AND hd.trang_thai = 'hieu_luc')
+                    WHERE n.account_id = ? AND hd.trang_thai = 'hieu_luc'
+                      AND hd.phong_id = lt.phong_id AND lt.ngay_den >= hd.ngay_bat_dau)
                  OR lt.nguoi_thue_id IN (SELECT id FROM nguoi_thue WHERE account_id = ?))";
         return [$sql, [$account_id, $account_id]];
     }

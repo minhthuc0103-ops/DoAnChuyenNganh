@@ -21,7 +21,8 @@ class UserController {
         $so_chua_doc    = $tbModel->countChuaDoc($account_id);   // tổng thật, không phải số dòng của danh sách 5 tin
 
         if ($nguoi_thue && !empty($nguoi_thue['hop_dong_id'])) {
-            $hoa_don_list = $this->hoaDonModel->getByPhongId((int)$nguoi_thue['phong_id']);
+            // Chỉ hóa đơn trong thời gian hợp đồng của chính người này (không lẫn hóa đơn của người thuê trước cùng phòng)
+            $hoa_don_list = $this->hoaDonModel->getByTaiKhoan($account_id);
             $phong_nguoi  = $this->ntp->getByHopDong((int)$nguoi_thue['hop_dong_id']);
         }
 
@@ -138,15 +139,71 @@ class UserController {
         require 'frontend/views/User/khu_phong.php';
     }
 
+    /** Id các phòng tài khoản này đang thuê (hợp đồng hiệu lực). */
+    private function phongCuaToi(int $account_id): array {
+        $s = \Database::getInstance()->prepare(
+            "SELECT DISTINCT hd.phong_id FROM hop_dong hd
+             JOIN nguoi_thue nt ON nt.id = hd.nguoi_thue_id
+             WHERE nt.account_id = ? AND hd.trang_thai = 'hieu_luc'"
+        );
+        $s->execute([$account_id]);
+        return array_map('intval', $s->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /** Người dùng chỉ xem chi tiết phòng CÒN TRỐNG hoặc phòng CỦA CHÍNH MÌNH; phòng người khác đang thuê thì không. */
+    private static function xemDuocPhong(array $p, array $phongCuaToi): bool {
+        return ($p['trang_thai'] ?? '') === 'trong' || in_array((int)$p['id'], $phongCuaToi, true);
+    }
+
+    /** Lọc danh sách phòng theo từ khóa (số phòng hoặc tên khu), không phân biệt hoa thường. */
+    private static function locTheoTuKhoa(array $phongs, string $kw): array {
+        $kw = mb_strtolower(trim($kw), 'UTF-8');
+        if ($kw === '') return $phongs;
+        return array_values(array_filter($phongs, fn($p) =>
+            mb_strpos(mb_strtolower((string)$p['so_phong'], 'UTF-8'), $kw) !== false
+            || mb_strpos(mb_strtolower((string)($p['ten_khu'] ?? ''), 'UTF-8'), $kw) !== false
+        ));
+    }
+
     public function phong() {
         $khu_id   = isset($_GET['khu_id']) ? (int)$_GET['khu_id'] : null;
         $filter   = $_GET['filter'] ?? 'all';
+        $kw       = trim((string)($_GET['kw'] ?? ''));
         $phongModel = new PhongModel();
         $khuModel   = new KhuTroModel();
-        $phongs = $phongModel->getAll($khu_id, $filter === 'all' ? null : $filter);
+        $phongs = self::locTheoTuKhoa($phongModel->getAll($khu_id, $filter === 'all' ? null : $filter), $kw);
         $khus   = $khuModel->getAll();
+        $phongCuaToi = $this->phongCuaToi((int)$_SESSION['user_id']);
         $title  = 'Danh sách phòng';
         require 'frontend/views/User/phong.php';
+    }
+
+    /** Ô "Tìm phòng..." trên thanh trên cùng (JSON): tìm theo số phòng / tên khu. */
+    public function timPhong() {
+        header('Content-Type: application/json; charset=utf-8');
+        $q = trim((string)($_GET['q'] ?? ''));
+        if ($q === '') {
+            echo json_encode(['ok' => true, 'results' => []]);
+            exit;
+        }
+        $phongCuaToi = $this->phongCuaToi((int)$_SESSION['user_id']);
+        $tt = ['trong' => 'Còn trống', 'dang_thue' => 'Đang thuê', 'bao_tri' => 'Bảo trì'];
+        $ra = [];
+        foreach (array_slice(self::locTheoTuKhoa((new PhongModel())->getAll(), $q), 0, 10) as $p) {
+            $xem   = self::xemDuocPhong($p, $phongCuaToi);
+            $cuaToi = in_array((int)$p['id'], $phongCuaToi, true);
+            $ra[] = [
+                'room'     => (string)$p['so_phong'],
+                'area'     => (string)($p['ten_khu'] ?? ''),
+                'price'    => (int)round((float)$p['gia']),
+                'status'   => $cuaToi ? 'Phòng của bạn' : ($tt[$p['trang_thai']] ?? 'Không rõ'),
+                'viewable' => $xem,
+                // Chỉ trả đường dẫn chi tiết cho phòng được phép xem
+                'url'      => $xem ? 'index.php?controller=user&action=chiTietPhong&id=' . (int)$p['id'] : '',
+            ];
+        }
+        echo json_encode(['ok' => true, 'results' => $ra], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
     public function profile() {
@@ -325,6 +382,12 @@ class UserController {
         $phong = $phongModel->getById($id);
         if (!$phong) {
             header('Location: index.php?controller=user&action=phong');
+            exit;
+        }
+        // Phòng người khác đang thuê (hoặc đang bảo trì) thì không cho xem chi tiết, kể cả khi gõ thẳng id lên thanh địa chỉ
+        if (!self::xemDuocPhong($phong, $this->phongCuaToi((int)$_SESSION['user_id']))) {
+            $lyDo = ($phong['trang_thai'] ?? '') === 'bao_tri' ? 'đang bảo trì' : 'đang có người thuê';
+            header('Location: index.php?controller=user&action=phong&chan=' . urlencode('Phòng ' . $phong['so_phong'] . ' ' . $lyDo . ' nên không xem được chi tiết.'));
             exit;
         }
         $title = 'Chi tiết phòng ' . $phong['so_phong'];

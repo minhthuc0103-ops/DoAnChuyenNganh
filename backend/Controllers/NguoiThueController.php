@@ -57,7 +57,7 @@ class NguoiThueController {
         }
 
         $ycModel = new YeuCauNguoiOCungModel();
-        $requests = $ycModel->getAll();
+        $requests = $ycModel->getAll(!LocHopDong::xemLichSu());   // mặc định: chỉ hợp đồng đang hiệu lực
         $soChoDuyet = $ycModel->countPending();
         $title = 'Duyệt người ở cùng';
         require 'frontend/views/NguoiThue/yeu_cau_o_cung.php';
@@ -141,6 +141,21 @@ class NguoiThueController {
                 exit;
             }
         }
+
+        // Xe của người thuê: xe họ tự đăng ký trong hồ sơ + xe nằm trong các hợp đồng của họ
+        $xeDangKy = !empty($data['account_id']) ? (new XeDangKyModel())->getByAccount((int)$data['account_id']) : [];
+        $sXe = $db->prepare(
+            "SELECT x.*, hd.trang_thai AS hd_trang_thai, p.so_phong, k.ten_khu
+             FROM xe x
+             JOIN hop_dong hd ON hd.id = x.hop_dong_id
+             LEFT JOIN phong p ON p.id = x.phong_id
+             LEFT JOIN khu_tro k ON k.id = p.khu_id
+             WHERE hd.nguoi_thue_id = ?
+             ORDER BY hd.trang_thai = 'hieu_luc' DESC, x.id DESC"
+        );
+        $sXe->execute([$id]);
+        $xeHopDong = $sXe->fetchAll();
+
         require 'frontend/views/NguoiThue/edit.php';
     }
 

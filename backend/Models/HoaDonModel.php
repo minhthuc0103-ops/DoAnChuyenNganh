@@ -132,6 +132,56 @@ class HoaDonModel {
         return (float)$s->fetchColumn();
     }
 
+    /**
+     * Điều kiện SQL "hóa đơn (alias $a) thuộc về tài khoản ?": tài khoản đó có hợp đồng CÙNG PHÒNG với hóa đơn
+     * và kỳ hóa đơn (tháng/năm) nằm trong khoảng tháng bắt đầu → tháng kết thúc của hợp đồng.
+     * Nhờ vậy người thuê mới không thấy hóa đơn / giao dịch của người thuê trước ở cùng phòng. Chứa đúng 1 dấu ?.
+     */
+    public static function dieuKienThuocTaiKhoan(string $a = 'hd'): string {
+        return "EXISTS (
+                    SELECT 1 FROM hop_dong hdg
+                    JOIN nguoi_thue ntg ON ntg.id = hdg.nguoi_thue_id
+                    WHERE ntg.account_id = ?
+                      AND hdg.phong_id = $a.phong_id
+                      AND ($a.nam * 12 + $a.thang)
+                          BETWEEN (YEAR(hdg.ngay_bat_dau) * 12 + MONTH(hdg.ngay_bat_dau))
+                              AND (YEAR(hdg.ngay_ket_thuc) * 12 + MONTH(hdg.ngay_ket_thuc)))";
+    }
+
+    /** Hóa đơn của người thuê (theo thời gian các hợp đồng của họ), kèm yêu cầu thanh toán đang chờ. */
+    public function getByTaiKhoan(int $account_id): array {
+        $s = $this->db->prepare(
+            "SELECT hd.*, p.so_phong,
+                    pend.pending_count, pend.pending_method, pend.pending_by, pend.pending_note
+             FROM hoa_don hd
+             JOIN phong p ON p.id = hd.phong_id
+             LEFT JOIN (
+                SELECT hoa_don_id,
+                       COUNT(*) AS pending_count,
+                       SUBSTRING_INDEX(GROUP_CONCAT(phuong_thuc ORDER BY created_at DESC), ',', 1) AS pending_method,
+                       SUBSTRING_INDEX(GROUP_CONCAT(nguoi_tra ORDER BY created_at DESC), ',', 1) AS pending_by,
+                       SUBSTRING_INDEX(GROUP_CONCAT(ghi_chu ORDER BY created_at DESC SEPARATOR '||'), '||', 1) AS pending_note
+                FROM lich_su_thanh_toan
+                WHERE trang_thai='dang_xu_ly'
+                GROUP BY hoa_don_id
+             ) pend ON pend.hoa_don_id = hd.id
+             WHERE " . self::dieuKienThuocTaiKhoan('hd') . "
+             ORDER BY hd.nam DESC, hd.thang DESC, hd.id DESC"
+        );
+        $s->execute([$account_id]);
+        return $s->fetchAll();
+    }
+
+    /** Hóa đơn $hoa_don_id có thuộc về tài khoản này không (kiểm tra quyền xem / thanh toán của người thuê). */
+    public function thuocTaiKhoan(int $hoa_don_id, int $account_id): bool {
+        if ($hoa_don_id <= 0 || $account_id <= 0) return false;
+        $s = $this->db->prepare(
+            "SELECT COUNT(*) FROM hoa_don hd WHERE hd.id = ? AND " . self::dieuKienThuocTaiKhoan('hd')
+        );
+        $s->execute([$hoa_don_id, $account_id]);
+        return (int)$s->fetchColumn() > 0;
+    }
+
     public function getByPhongId(int $phong_id): array {
         $s = $this->db->prepare(
             "SELECT hd.*,

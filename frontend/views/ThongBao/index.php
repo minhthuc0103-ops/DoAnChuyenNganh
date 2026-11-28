@@ -46,6 +46,7 @@ $ttMap = [
   </div>
   <?php endif; ?>
 </div>
+<?php if($isAdmin) require 'frontend/views/Layouts/loc_hop_dong.php'; ?>
 
 <?php if(!empty($_GET['msg'])): ?>
 <div class="msg-alert msg-success" style="margin-bottom:14px;">

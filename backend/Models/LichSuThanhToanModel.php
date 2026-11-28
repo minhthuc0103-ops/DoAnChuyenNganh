@@ -48,6 +48,12 @@ class LichSuThanhToanModel
             $params[] = (int)$f['thang'];
             $params[] = (int)$f['nam'];
         }
+        if (!empty($f['chi_hieu_luc'])) {
+            // Mặc định trang quản trị: chỉ giao dịch của hóa đơn trong thời gian hợp đồng đang hiệu lực của phòng đó
+            $where[] = "EXISTS (SELECT 1 FROM hop_dong hlq
+                                WHERE hlq.phong_id = ls.phong_id AND hlq.trang_thai = 'hieu_luc'
+                                  AND (hd.nam * 12 + hd.thang) >= (YEAR(hlq.ngay_bat_dau) * 12 + MONTH(hlq.ngay_bat_dau)))";
+        }
         $s = $this->db->prepare(
             "SELECT ls.*, p.so_phong, k.ten_khu, hd.thang, hd.nam
              FROM lich_su_thanh_toan ls
@@ -76,6 +82,23 @@ class LichSuThanhToanModel
              LIMIT " . (int)$limit
         );
         $s->execute([$phong_id]);
+        return $s->fetchAll();
+    }
+
+    /** Lịch sử giao dịch của NGƯỜI THUÊ: chỉ giao dịch của hóa đơn thuộc thời gian hợp đồng của chính họ. */
+    public function getByTaiKhoan(int $account_id, int $limit = 100): array
+    {
+        $s = $this->db->prepare(
+            "SELECT ls.*, p.so_phong, k.ten_khu, hd.thang, hd.nam
+             FROM lich_su_thanh_toan ls
+             JOIN hoa_don hd ON hd.id = ls.hoa_don_id
+             JOIN phong p ON ls.phong_id = p.id
+             LEFT JOIN khu_tro k ON p.khu_id = k.id
+             WHERE " . HoaDonModel::dieuKienThuocTaiKhoan('hd') . "
+             ORDER BY ls.created_at DESC, ls.id DESC
+             LIMIT " . max(1, min(500, (int)$limit))
+        );
+        $s->execute([$account_id]);
         return $s->fetchAll();
     }
 

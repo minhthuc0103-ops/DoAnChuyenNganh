@@ -46,8 +46,9 @@ class BanGiaoController
         $userId = (int)($_SESSION['user_id'] ?? 0);
 
         if ($this->isAdmin()) {
-            $bienBanList = $this->model->getAllBienBan();
-            $traPhongList = $this->model->getAllYeuCauTraPhong();
+            $chiHieuLuc   = !LocHopDong::xemLichSu();   // mặc định: chỉ hợp đồng đang hiệu lực
+            $bienBanList  = $this->model->getAllBienBan(null, $chiHieuLuc);
+            $traPhongList = $this->model->getAllYeuCauTraPhong(null, $chiHieuLuc);
             $soChoKiemTra = $this->model->countPendingTraPhong();
             $activeRental = null;
             $donGia = $this->model->getDonGia();
@@ -170,6 +171,17 @@ class BanGiaoController
         require 'frontend/views/BanGiao/xem_bien_ban.php';
     }
 
+    /** Người dùng (không phải quản trị) chỉ được mở bản ghi của chính mình: nguoi_thue gắn với tài khoản đang đăng nhập. */
+    private function laCuaToi(int $nguoiThueId, int $userId = 0): bool
+    {
+        $toi = (int)($_SESSION['user_id'] ?? 0);
+        if ($toi <= 0) return false;
+        if ($userId > 0 && $userId === $toi) return true;
+        $s = Database::getInstance()->prepare("SELECT account_id FROM nguoi_thue WHERE id = ?");
+        $s->execute([$nguoiThueId]);
+        return (int)$s->fetchColumn() === $toi;
+    }
+
     // In biên bản định dạng chuẩn A4
     public function inBienBan(): void
     {
@@ -178,6 +190,11 @@ class BanGiaoController
 
         if (!$bb) {
             die('Biên bản không tồn tại.');
+        }
+        // Trước đây trang in không kiểm tra quyền: người thuê đổi id là in được biên bản của người khác
+        if (!$this->isAdmin() && !$this->laCuaToi((int)$bb['nguoi_thue_id'])) {
+            http_response_code(403);
+            die('Bạn không có quyền xem biên bản này.');
         }
 
         $danhSachTaiSan = json_decode($bb['danh_sach_tai_san'] ?? '[]', true) ?: [];
@@ -413,6 +430,11 @@ class BanGiaoController
 
         if (!$yc) {
             die('Yêu cầu trả phòng không tồn tại.');
+        }
+        // Phiếu có số tài khoản ngân hàng: chỉ quản trị hoặc chính người yêu cầu được xem
+        if (!$this->isAdmin() && !$this->laCuaToi((int)($yc['nguoi_thue_id'] ?? 0), (int)($yc['user_id'] ?? 0))) {
+            http_response_code(403);
+            die('Bạn không có quyền xem phiếu này.');
         }
 
         require 'frontend/views/BanGiao/in_phieu_tra_phong.php';

@@ -84,6 +84,68 @@ require_once 'frontend/views/Layouts/header.php';
       </form>
     </div>
   </div>
+
+  <?php
+    $loaiXe = ['xe_may'=>'🏍 Xe máy','xe_dien'=>'⚡ Xe điện','xe_dap'=>'🚲 Xe đạp','o_to'=>'🚗 Ô tô'];
+    $xeDangKy  = $xeDangKy  ?? [];
+    $xeHopDong = $xeHopDong ?? [];
+    // Biển số đang gửi trong hợp đồng còn hiệu lực
+    $bsDangGui = [];
+    foreach ($xeHopDong as $xh) {
+        if (($xh['hd_trang_thai'] ?? '') === 'hieu_luc') $bsDangGui[strtoupper(trim($xh['bien_so']))] = $xh['so_phong'] ?? '';
+    }
+  ?>
+  <!-- XE ĐÃ ĐĂNG KÝ (người thuê tự đăng ký trong hồ sơ; tự điền vào hợp đồng khi tạo) -->
+  <div class="card" style="margin-top:16px;">
+    <div class="card-header">
+      <div class="card-title">🏍 Xe đã đăng ký</div>
+      <div class="card-sub"><?= count($xeDangKy) ?> xe người thuê tự đăng ký trong hồ sơ</div>
+    </div>
+    <div class="card-body">
+      <?php if (empty($data['account_id'])): ?>
+        <div style="font-size:13px;color:var(--text3);">Chưa liên kết tài khoản đăng nhập nên chưa có xe tự đăng ký.</div>
+      <?php elseif (empty($xeDangKy)): ?>
+        <div style="font-size:13px;color:var(--text3);">Người thuê chưa đăng ký xe nào trong hồ sơ.</div>
+      <?php else: ?>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <?php foreach ($xeDangKy as $x): $key = strtoupper(trim($x['bien_so'])); ?>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg3);border-radius:12px;border:1px solid var(--border);">
+            <div style="font-size:15px;font-weight:800;letter-spacing:.5px;font-family:monospace;color:var(--text);"><?= htmlspecialchars($x['bien_so']) ?></div>
+            <div style="flex:1;min-width:0;font-size:12px;color:var(--text3);">
+              <?= $loaiXe[$x['loai_xe']] ?? htmlspecialchars($x['loai_xe']) ?><?= !empty($x['mau_sac']) ? ' · ' . htmlspecialchars($x['mau_sac']) : '' ?>
+            </div>
+            <?php if (isset($bsDangGui[$key])): ?>
+            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(34,201,147,.12);color:var(--green);">✓ Đang gửi tại phòng <?= htmlspecialchars($bsDangGui[$key]) ?></span>
+            <?php else: ?>
+            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(247,169,79,.12);color:var(--amber);">Chưa vào hợp đồng</span>
+            <?php endif; ?>
+          </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- XE TRONG HỢP ĐỒNG -->
+  <?php if (!empty($xeHopDong)): ?>
+  <div class="card" style="margin-top:16px;">
+    <div class="card-header"><div class="card-title">📄 Xe trong hợp đồng</div><div class="card-sub"><?= count($xeHopDong) ?> xe</div></div>
+    <div class="card-body">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <?php foreach ($xeHopDong as $x): $hl = ($x['hd_trang_thai'] ?? '') === 'hieu_luc'; ?>
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg3);border-radius:12px;border:1px solid var(--border);<?= $hl ? '' : 'opacity:.6;' ?>">
+          <div style="font-size:15px;font-weight:800;letter-spacing:.5px;font-family:monospace;color:var(--text);"><?= htmlspecialchars($x['bien_so']) ?></div>
+          <div style="flex:1;min-width:0;font-size:12px;color:var(--text3);">
+            <?= $loaiXe[$x['loai_xe']] ?? htmlspecialchars((string)$x['loai_xe']) ?><?= !empty($x['mau_sac']) ? ' · ' . htmlspecialchars($x['mau_sac']) : '' ?>
+            <?php if (!empty($x['so_phong'])): ?> · Phòng <?= htmlspecialchars($x['so_phong']) ?><?= !empty($x['ten_khu']) ? ' (' . htmlspecialchars($x['ten_khu']) . ')' : '' ?><?php endif; ?>
+          </div>
+          <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;<?= $hl ? 'background:rgba(34,201,147,.12);color:var(--green);' : 'background:rgba(156,163,175,.15);color:#9ca3af;' ?>"><?= $hl ? 'Hợp đồng hiệu lực' : 'Hợp đồng đã kết thúc' ?></span>
+        </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
 </div>
 <?php require_once 'frontend/views/Layouts/footer.php'; ?>
 <script src="frontend/assets/js/nguoithue-edit.js"></script>

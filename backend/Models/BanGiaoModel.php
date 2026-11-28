@@ -94,7 +94,8 @@ class BanGiaoModel
 
     // ════════════ BIÊN BẢN BÀN GIAO ════════════
 
-    public function getAllBienBan(?string $loai = null): array
+    /** @param bool $chiHieuLuc true = chỉ biên bản của hợp đồng đang hiệu lực (mặc định trang quản trị) */
+    public function getAllBienBan(?string $loai = null, bool $chiHieuLuc = false): array
     {
         $sql = "
             SELECT bb.*, p.so_phong, kt.ten_khu, nt.ho_ten AS ten_nguoi_thue, nt.sdt,
@@ -106,9 +107,16 @@ class BanGiaoModel
             JOIN hop_dong hd ON bb.hop_dong_id = hd.id
         ";
         $params = [];
+        $where  = [];
         if ($loai !== null && in_array($loai, ['nhan_phong', 'tra_phong'], true)) {
-            $sql .= " WHERE bb.loai = ?";
+            $where[]  = "bb.loai = ?";
             $params[] = $loai;
+        }
+        if ($chiHieuLuc) {
+            $where[] = "hd.trang_thai = 'hieu_luc'";
+        }
+        if ($where) {
+            $sql .= " WHERE " . implode(' AND ', $where);
         }
         $sql .= " ORDER BY bb.ngay_lap DESC, bb.id DESC";
 
@@ -192,7 +200,20 @@ class BanGiaoModel
 
     // ════════════ YÊU CẦU TRẢ PHÒNG & QUYẾT TOÁN ════════════
 
-    public function getAllYeuCauTraPhong(?string $filter = null): array
+    /**
+     * @param bool $chiHieuLuc true = mặc định trang quản trị: yêu cầu của hợp đồng đang hiệu lực, cộng các yêu cầu
+     *                         CHƯA xử lý xong (vẫn phải hiện để quản lý quyết toán dù hợp đồng đã chuyển trạng thái).
+     */
+    public function getAllYeuCauTraPhong(?string $filter = null, bool $chiHieuLuc = false): array
+    {
+        if ($chiHieuLuc) {
+            $dk = "(hd.trang_thai = 'hieu_luc' OR yc.trang_thai IN ('cho_kiem_tra','dang_kiem_tra'))";
+            return $this->getAllYeuCauTraPhongDieuKien($filter, $dk);
+        }
+        return $this->getAllYeuCauTraPhongDieuKien($filter, null);
+    }
+
+    private function getAllYeuCauTraPhongDieuKien(?string $filter, ?string $dieuKienThem): array
     {
         $sql = "
             SELECT yc.*, p.so_phong, kt.ten_khu, nt.ho_ten AS ten_nguoi_thue, nt.sdt,
@@ -206,9 +227,16 @@ class BanGiaoModel
             LEFT JOIN account acc ON yc.user_id = acc.id
         ";
         $params = [];
+        $where  = [];
         if ($filter !== null && in_array($filter, ['cho_kiem_tra', 'dang_kiem_tra', 'da_thanh_ly', 'tu_choi'], true)) {
-            $sql .= " WHERE yc.trang_thai = ?";
+            $where[]  = "yc.trang_thai = ?";
             $params[] = $filter;
+        }
+        if ($dieuKienThem !== null) {
+            $where[] = $dieuKienThem;
+        }
+        if ($where) {
+            $sql .= " WHERE " . implode(' AND ', $where);
         }
         $sql .= " ORDER BY
                   FIELD(yc.trang_thai, 'cho_kiem_tra', 'dang_kiem_tra', 'da_thanh_ly', 'tu_choi'),

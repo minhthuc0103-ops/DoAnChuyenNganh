@@ -30,7 +30,7 @@ class ChuyenPhongController
     public function index(): void
     {
         if ($this->isAdmin()) {
-            $requests = $this->model->getAll();
+            $requests = $this->model->getAll(!LocHopDong::xemLichSu());   // mặc định: chỉ hợp đồng đang hiệu lực
             $soChoDuyet = $this->model->countPending();
             $currentRental = null;
             $phongTrong = [];

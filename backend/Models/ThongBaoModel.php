@@ -94,13 +94,20 @@ class ThongBaoModel
      */
     private function dieuKienQuyen(): array
     {
+        // Thông báo CHUNG chỉ hiện từ khi người này bắt đầu thuê (ngày bắt đầu hợp đồng sớm nhất của họ);
+        // chưa có hợp đồng thì từ lúc tạo tài khoản. Người thuê mới không thấy thông báo cũ trước thời gian thuê.
+        // Mọi dấu ? ở đây đều là account id (caller truyền array_fill(0, $n, $user_id)).
+        $tuNgay = "tb.created_at >= COALESCE(
+                        (SELECT MIN(hdq.ngay_bat_dau) FROM hop_dong hdq
+                         JOIN nguoi_thue ntq ON ntq.id = hdq.nguoi_thue_id WHERE ntq.account_id = ?),
+                        (SELECT DATE(acq.created_at) FROM account acq WHERE acq.id = ?))";
         if (self::$coCot) {
             // rieng_tu NULL = thông báo cũ chưa được phân loại (backfill lỗi hoặc chưa chạy): xử lý như chế độ an toàn,
             // tức loại hệ thống tự sinh (tien_phong, khac) bị coi là riêng, không để lộ.
-            return ["(COALESCE(tb.rieng_tu, tb.loai IN ('tien_phong','khac')) = 0 OR EXISTS (
-                        SELECT 1 FROM thong_bao_nguoi_nhan r WHERE r.thong_bao_id = tb.id AND r.user_id = ?))", 1];
+            return ["((COALESCE(tb.rieng_tu, tb.loai IN ('tien_phong','khac')) = 0 AND $tuNgay) OR EXISTS (
+                        SELECT 1 FROM thong_bao_nguoi_nhan r WHERE r.thong_bao_id = tb.id AND r.user_id = ?))", 3];
         }
-        return ["tb.loai NOT IN ('tien_phong','khac')", 0];
+        return ["(tb.loai NOT IN ('tien_phong','khac') AND $tuNgay)", 2];
     }
 
     public function coQuyenXem(array $tb, int $user_id): bool

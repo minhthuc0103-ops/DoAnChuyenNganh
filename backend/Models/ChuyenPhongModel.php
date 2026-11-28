@@ -71,7 +71,8 @@ class ChuyenPhongModel
         return $s->fetchAll();
     }
 
-    public function getAll(): array
+    /** @param bool $chiHieuLuc true = chỉ yêu cầu của hợp đồng đang hiệu lực (mặc định trang quản trị) */
+    public function getAll(bool $chiHieuLuc = false): array
     {
         return $this->db->query(
             "SELECT yc.*, pc.so_phong AS phong_cu, pm.so_phong AS phong_moi,
@@ -83,7 +84,8 @@ class ChuyenPhongModel
              LEFT JOIN khu_tro kc ON kc.id = pc.khu_id
              LEFT JOIN khu_tro km ON km.id = pm.khu_id
              JOIN nguoi_thue nt ON nt.id = yc.nguoi_thue_id
-             LEFT JOIN account a ON a.id = yc.nguoi_duyet_id
+             LEFT JOIN account a ON a.id = yc.nguoi_duyet_id"
+            . ($chiHieuLuc ? " WHERE " . LocHopDong::theoHopDong('yc.hop_dong_id') : "") . "
              ORDER BY FIELD(yc.trang_thai, 'cho_duyet', 'da_duyet', 'tu_choi', 'da_huy'), yc.created_at DESC"
         )->fetchAll();
     }

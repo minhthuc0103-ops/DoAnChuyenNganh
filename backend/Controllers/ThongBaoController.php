@@ -69,9 +69,15 @@ class ThongBaoController
         $db      = Database::getInstance();
 
         if ($this->isAdmin()) {
-            // Admin: thấy TẤT CẢ yêu cầu sửa chữa của mọi phòng
+            // Admin: mặc định chỉ yêu cầu của người ĐANG thuê, gửi từ ngày hợp đồng của họ bắt đầu;
+            // bấm "Tất cả (gồm lịch sử cũ)" để xem cả yêu cầu của người thuê trước.
+            // (Bảng không có hop_dong_id: khớp theo tài khoản người gửi + ngày gửi.)
+            $dkHieuLuc = LocHopDong::xemLichSu() ? '' : "WHERE EXISTS (
+                    SELECT 1 FROM hop_dong hlq JOIN nguoi_thue nlq ON nlq.id = hlq.nguoi_thue_id
+                    WHERE nlq.account_id = yeu_cau_sua_chua.user_id AND hlq.trang_thai = 'hieu_luc'
+                      AND DATE(yeu_cau_sua_chua.created_at) >= hlq.ngay_bat_dau)";
             $suaChuaList = $db->query(
-                "SELECT * FROM yeu_cau_sua_chua ORDER BY
+                "SELECT * FROM yeu_cau_sua_chua $dkHieuLuc ORDER BY
                  FIELD(trang_thai,'cho_xu_ly','dang_xu_ly','da_xong'),
                  FIELD(muc_do,'khan_cap','trung_binh','nhe'),
                  created_at DESC"

@@ -16,6 +16,7 @@ class LuuTruController {
             'phong_id'   => $_GET['phong_id'] ?? '',
             'trang_thai' => $_GET['trang_thai'] ?? '',
             'keyword'    => $_GET['keyword'] ?? '',
+            'chi_hieu_luc' => !LocHopDong::xemLichSu(),   // mặc định: chỉ hợp đồng đang hiệu lực
         ];
 
         $list   = $this->model->getAll($filter);

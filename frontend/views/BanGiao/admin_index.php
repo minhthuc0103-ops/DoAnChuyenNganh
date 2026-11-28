@@ -22,6 +22,7 @@ $statusMap = [
     </a>
   </div>
 </div>
+<?php require 'frontend/views/Layouts/loc_hop_dong.php'; ?>
 
 <?php if (!empty($_GET['msg'])): ?>
 <div class="msg-alert msg-success" style="margin-bottom:14px;">
@@ -36,7 +37,8 @@ $statusMap = [
 
 <!-- TAB NAVIGATION -->
 <div style="display:flex;gap:10px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:10px;">
-  <a href="index.php?controller=bangiao&action=index&tab=tra_phong"
+  <?php $__lsQs = LocHopDong::xemLichSu() ? '&lich_su=1' : ''; /* giữ lựa chọn "xem lịch sử cũ" khi đổi tab */ ?>
+  <a href="index.php?controller=bangiao&action=index&tab=tra_phong<?= $__lsQs ?>"
      class="btn <?= $activeTab === 'tra_phong' ? 'btn-primary' : 'btn-outline' ?>"
      style="font-size:13px;padding:8px 18px;">
     📤 Yêu cầu trả phòng & Quyết toán cọc
@@ -44,7 +46,7 @@ $statusMap = [
       <span class="pill p-red" style="margin-left:6px;font-size:10px;"><?=$soChoKiemTra?></span>
     <?php endif; ?>
   </a>
-  <a href="index.php?controller=bangiao&action=index&tab=ban_giao"
+  <a href="index.php?controller=bangiao&action=index&tab=ban_giao<?= $__lsQs ?>"
      class="btn <?= $activeTab === 'ban_giao' ? 'btn-primary' : 'btn-outline' ?>"
      style="font-size:13px;padding:8px 18px;">
     📋 Danh sách biên bản bàn giao phòng

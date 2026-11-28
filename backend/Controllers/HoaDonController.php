@@ -295,9 +295,8 @@ class HoaDonController {
             exit;
         }
 
-        $ntModel = new NguoiThueModel();
-        $nguoiThue = $ntModel->getByAccountId((int)$_SESSION['user_id']);
-        if (!$nguoiThue || (int)$nguoiThue['phong_id'] !== (int)$hd['phong_id']) {
+        // Chỉ được báo thanh toán hóa đơn của chính mình (trong thời gian hợp đồng của mình), không phải của người thuê trước
+        if (!$this->model->thuocTaiKhoan($id, (int)$_SESSION['user_id'])) {
             header('Location: index.php?controller=user&action=index');
             exit;
         }
@@ -442,14 +441,11 @@ class HoaDonController {
             exit;
         }
 
-        // User chỉ xem hóa đơn phòng mình
-        if (($_SESSION['vai_tro'] ?? '') === 'user') {
-            $ntModel = new NguoiThueModel();
-            $nguoiThue = $ntModel->getByAccountId((int)$_SESSION['user_id']);
-            if (!$nguoiThue || (int)$nguoiThue['phong_id'] !== (int)$hd['phong_id']) {
-                header('Location: index.php?controller=user&action=index');
-                exit;
-            }
+        // User chỉ xem hóa đơn của chính mình (cùng phòng VÀ trong thời gian hợp đồng của mình)
+        if (($_SESSION['vai_tro'] ?? '') === 'user'
+            && !$this->model->thuocTaiKhoan((int)$hd['id'], (int)$_SESSION['user_id'])) {
+            header('Location: index.php?controller=user&action=index');
+            exit;
         }
 
         // Lấy thông tin phòng
@@ -479,11 +475,8 @@ class HoaDonController {
         $khus = $phongs = [];
 
         if (!$laAdmin) {
-            // Người thuê chỉ xem lịch sử giao dịch của phòng mình
-            $nguoiThue = (new NguoiThueModel())->getByAccountId((int)$_SESSION['user_id']);
-            $list = ($nguoiThue && !empty($nguoiThue['phong_id']))
-                ? $lsttModel->getByPhong((int)$nguoiThue['phong_id'])
-                : [];
+            // Người thuê chỉ xem giao dịch của hóa đơn thuộc thời gian hợp đồng của chính mình
+            $list = $lsttModel->getByTaiKhoan((int)$_SESSION['user_id']);
         } else {
             // Quản trị xem tất cả, có thể lọc theo khu, phòng, trạng thái, kỳ hóa đơn
             $loc = [
@@ -492,6 +485,7 @@ class HoaDonController {
                 'trang_thai' => in_array($_GET['trang_thai'] ?? '', ['thanh_cong', 'dang_xu_ly', 'that_bai'], true) ? $_GET['trang_thai'] : '',
                 'thang'      => (int)($_GET['thang'] ?? 0),
                 'nam'        => (int)($_GET['nam'] ?? 0),
+                'chi_hieu_luc' => !LocHopDong::xemLichSu(),   // mặc định: chỉ hợp đồng đang hiệu lực
             ];
             if ($loc['thang'] < 1 || $loc['thang'] > 12 || $loc['nam'] < 2000) {
                 $loc['thang'] = $loc['nam'] = 0;
@@ -515,12 +509,9 @@ class HoaDonController {
             exit;
         }
         $laAdmin = in_array($_SESSION['vai_tro'] ?? '', ['quan_ly', 'chu_tro'], true);
-        if (!$laAdmin) {
-            $nguoiThue = (new NguoiThueModel())->getByAccountId((int)($_SESSION['user_id'] ?? 0));
-            if (!$nguoiThue || (int)$nguoiThue['phong_id'] !== (int)$gd['phong_id']) {
-                header('Location: index.php?controller=hoadon&action=lichSu');
-                exit;
-            }
+        if (!$laAdmin && !$this->model->thuocTaiKhoan((int)$gd['hoa_don_id'], (int)($_SESSION['user_id'] ?? 0))) {
+            header('Location: index.php?controller=hoadon&action=lichSu');
+            exit;
         }
         $title = 'Chi tiết giao dịch #' . $gd['id'];
         require 'frontend/views/HoaDon/chi_tiet_giao_dich.php';

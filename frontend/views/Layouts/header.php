@@ -282,7 +282,7 @@
         <span class="breadcrumb-cur"><?= htmlspecialchars($title??'Dashboard') ?></span>
       </div>
     </div>
-    <div class="tb-search" id="globalSearchBox">
+    <div class="tb-search" id="globalSearchBox" data-mode="<?= $__role === 'user' ? 'phong' : 'nguoithue' ?>">
       <span style="color:var(--text3);font-size:13px">🔍</span>
       <input type="text" id="globalSearchInput" autocomplete="off" placeholder="<?= $__role === 'user' ? 'Tìm phòng...' : 'Tìm người thuê, phòng, SĐT...' ?>"/>
       <?php if ($__role !== 'user'): ?>
@@ -290,6 +290,12 @@
         <div class="gs-head">Tìm kiếm người thuê</div>
         <div class="gs-list" id="globalSearchList"></div>
         <a class="gs-all" id="globalSearchAll" href="index.php?controller=nguoithue&action=index">Xem tất cả trong danh sách người thuê ›</a>
+      </div>
+      <?php else: ?>
+      <div class="global-search-results" id="globalSearchResults">
+        <div class="gs-head">Tìm phòng</div>
+        <div class="gs-list" id="globalSearchList"></div>
+        <a class="gs-all" id="globalSearchAll" href="index.php?controller=user&action=phong">Xem tất cả trong danh sách phòng ›</a>
       </div>
       <?php endif; ?>
     </div>
@@ -375,6 +381,5 @@
     </div>
     <script src="frontend/assets/js/layouts-header.js"></script>
     <?php endif; ?>
-    <?php if($__role !== 'user'): ?>
+    <!-- Ô tìm kiếm trên cùng: quản trị tìm người thuê, người dùng tìm phòng (JS tự chọn theo data-mode) -->
     <script src="frontend/assets/js/layouts-header-2.js"></script>
-    <?php endif; ?>

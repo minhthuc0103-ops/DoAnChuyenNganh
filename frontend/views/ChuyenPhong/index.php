@@ -26,6 +26,7 @@ $ttMap = [
 
 <?php if ($isAdmin): ?>
 <!-- ADMIN -->
+<?php require 'frontend/views/Layouts/loc_hop_dong.php'; ?>
 <div class="msg-alert msg-info">
   ⚠ Tính năng chuyển phòng hiện chỉ cập nhật phòng trên hợp đồng, người ở và xe. Hệ thống chưa tự tính bù trừ tiền phòng giữa tháng, chênh lệch tiền cọc hoặc ngày bắt đầu áp dụng giá phòng mới. Vui lòng xử lý các khoản này thủ công trước khi duyệt.
 </div>

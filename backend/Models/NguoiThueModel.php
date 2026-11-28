@@ -4,6 +4,44 @@ class NguoiThueModel {
     public function __construct() {
         $this->db = Database::getInstance();
         $this->ensureAccountLifecycleColumns();
+        $this->ensureAccountCascade();
+    }
+
+    // Tài khoản và người thuê gắn liền nhau: xóa account thì xóa luôn hồ sơ người thuê (không còn SET NULL)
+    private function ensureAccountCascade(): void {
+        try {
+            $s = $this->db->query(
+                "SELECT constraint_name, delete_rule FROM information_schema.referential_constraints
+                 WHERE constraint_schema = DATABASE() AND table_name = 'nguoi_thue' AND referenced_table_name = 'account'"
+            );
+            $fk = $s->fetch();
+            if ($fk && strtoupper($fk['delete_rule']) !== 'CASCADE') {
+                $this->db->exec("ALTER TABLE nguoi_thue DROP FOREIGN KEY `{$fk['constraint_name']}`");
+                $this->db->exec("ALTER TABLE nguoi_thue ADD CONSTRAINT `{$fk['constraint_name']}` FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE");
+            }
+        } catch (Throwable $e) {
+            error_log('ensureAccountCascade: ' . $e->getMessage());
+        }
+    }
+
+    // Xóa hồ sơ người thuê và tài khoản người thuê (vai trò 'user') đi kèm nếu không còn hồ sơ nào khác dùng nó
+    private function xoaHoSoVaTaiKhoan(int $id): bool {
+        $s = $this->db->prepare("SELECT account_id FROM nguoi_thue WHERE id=?");
+        $s->execute([$id]);
+        $accountId = (int)$s->fetchColumn();
+
+        $s = $this->db->prepare("DELETE FROM nguoi_thue WHERE id=?");
+        $s->execute([$id]);
+        $ok = $s->rowCount() > 0;
+
+        if ($ok && $accountId > 0) {
+            $s = $this->db->prepare(
+                "DELETE FROM account WHERE id=? AND vai_tro='user'
+                   AND NOT EXISTS (SELECT 1 FROM nguoi_thue WHERE account_id=?)"
+            );
+            $s->execute([$accountId, $accountId]);
+        }
+        return $ok;
     }
 
     private function ensureAccountLifecycleColumns(): void {
@@ -178,15 +216,13 @@ class NguoiThueModel {
         );
         $s->execute([$id]);
         if ($s->fetchColumn() > 0) return false;
-        $s = $this->db->prepare("DELETE FROM nguoi_thue WHERE id=?");
-        $s->execute([$id]);
-        return $s->rowCount() > 0;   // không có dòng nào bị xóa = thất bại, không báo thành công giả
+        return $this->xoaHoSoVaTaiKhoan($id);   // không có dòng nào bị xóa = thất bại, không báo thành công giả
     }
 
     // Xóa cứng - dùng khi xóa HĐ
     public function forceDelete(int $id): bool {
-        $s = $this->db->prepare("DELETE FROM nguoi_thue WHERE id=?");
-        return $s->execute([$id]);
+        $this->xoaHoSoVaTaiKhoan($id);
+        return true;
     }
 
     public function getByAccountId(int $account_id): array|false {
