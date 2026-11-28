@@ -23,11 +23,6 @@ $paymentQrOptions = [
     'title' => 'Quét QR bằng ứng dụng MoMo',
     'hint'  => 'Mở MoMo → Quét mã → Nhập đúng số tiền và nội dung thanh toán',
   ],
-  'vnpay' => [
-    'url'   => VNPAY_QR_IMAGE,
-    'title' => 'Quét mã VNPay-QR',
-    'hint'  => 'Mở ứng dụng hỗ trợ VNPay-QR → Quét mã → Kiểm tra thông tin → Xác nhận',
-  ],
 ];
 ?>
 
@@ -70,8 +65,8 @@ $paymentQrOptions = [
       </div>
       <?php endif; ?>
 
-      <form method="POST" action="index.php?controller=hoadon&action=thanhToan&id=<?= $hd['id'] ?>
-            <?= Csrf::field() ?>">
+      <form method="POST" action="index.php?controller=hoadon&action=thanhToan&id=<?= (int)$hd['id'] ?>">
+        <?= Csrf::field() ?>
         <div class="form-group">
           <label class="form-label">💳 Phương thức thanh toán</label>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -86,10 +81,6 @@ $paymentQrOptions = [
             <label class="pt-option" data-val="momo" onclick="selectPT('momo')">
               <input type="radio" name="phuong_thuc" value="momo" style="display:none;"/>
               <span style="font-size:24px;">📱</span><div><div style="font-size:13px;font-weight:700;color:var(--text);">MoMo</div><div style="font-size:11px;color:var(--text3);">QR riêng</div></div>
-            </label>
-            <label class="pt-option" data-val="vnpay" onclick="selectPT('vnpay')">
-              <input type="radio" name="phuong_thuc" value="vnpay" style="display:none;"/>
-              <span style="font-size:24px;">🔵</span><div><div style="font-size:13px;font-weight:700;color:var(--text);">VNPay</div><div style="font-size:11px;color:var(--text3);">VNPay-QR</div></div>
             </label>
           </div>
         </div>
@@ -137,7 +128,7 @@ $paymentQrOptions = [
 
 <script>
 const paymentQrOptions = <?= json_encode($paymentQrOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
-const btnLabels = {tien_mat:'✓ Xác nhận đã thu tiền mặt',chuyen_khoan:'✓ Xác nhận đã nhận chuyển khoản',momo:'✓ Xác nhận đã nhận MoMo',vnpay:'✓ Xác nhận đã nhận VNPay'};
+const btnLabels = {tien_mat:'✓ Xác nhận đã thu tiền mặt',chuyen_khoan:'✓ Xác nhận đã nhận chuyển khoản',momo:'✓ Xác nhận đã nhận MoMo'};
 function selectPT(val) {
   document.querySelectorAll('input[name=phuong_thuc]').forEach(r => { if (r.value === val) r.checked = true; });
   document.querySelectorAll('.pt-option').forEach(el => el.classList.toggle('active', el.dataset.val === val));

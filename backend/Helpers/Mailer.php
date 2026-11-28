@@ -9,6 +9,12 @@ class Mailer
 {
     private const LIB = __DIR__ . '/../Libs/PHPMailer/';
 
+    /** Mật khẩu ứng dụng Gmail: Google hiển thị theo nhóm "abcd efgh ijkl mnop", nên bỏ mọi khoảng trắng nếu người dùng dán cả dấu cách. */
+    private static function matKhau(): string
+    {
+        return preg_replace('/\s+/', '', (string)MAIL_PASSWORD);
+    }
+
     /** Đã bật và đủ thông tin đăng nhập chưa. */
     public static function sanSang(): bool
     {
@@ -40,7 +46,7 @@ class Mailer
             $m->SMTPAuth = (bool)MAIL_AUTH;
             if (MAIL_AUTH) {
                 $m->Username = MAIL_USERNAME;
-                $m->Password = MAIL_PASSWORD;
+                $m->Password = self::matKhau();
             }
             if (MAIL_SECURE === 'ssl') {
                 $m->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;

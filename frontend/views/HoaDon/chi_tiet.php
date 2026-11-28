@@ -20,7 +20,6 @@ $qrUrl  = 'https://img.vietqr.io/image/' . BANK_ID . '-' . BANK_ACCOUNT . '-' . 
 $detailQrOptions = [
   'chuyen_khoan' => ['url' => $qrUrl, 'title' => 'QR Banking', 'hint' => 'QR ngân hàng đã điền sẵn số tiền và nội dung.'],
   'momo' => ['url' => MOMO_QR_IMAGE, 'title' => 'MoMo', 'hint' => 'QR tĩnh: nhập đúng số tiền và nội dung trước khi xác nhận.'],
-  'vnpay' => ['url' => VNPAY_QR_IMAGE, 'title' => 'VNPay-QR', 'hint' => 'QR tĩnh: nhập đúng số tiền và nội dung trước khi xác nhận.'],
 ];
 ?>
 
@@ -234,10 +233,9 @@ $detailQrOptions = [
   <div class="card" style="margin-bottom:18px;">
     <div class="card-header"><div class="card-title">📱 Thanh toán QR</div><span class="pill p-red">Chưa thanh toán</span></div>
     <div class="card-body" style="text-align:center;">
-      <div class="no-print" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+      <div class="no-print" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;">
         <button type="button" class="btn btn-outline" onclick="showDetailQr('chuyen_khoan')">🏦 Banking</button>
         <button type="button" class="btn btn-outline" onclick="showDetailQr('momo')">📱 MoMo</button>
-        <button type="button" class="btn btn-outline" onclick="showDetailQr('vnpay')">🔵 VNPay</button>
       </div>
       <div id="detailQrTitle" style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px;">QR Banking</div>
       <div style="background:#fff;border-radius:12px;padding:14px;display:inline-block;margin-bottom:14px;"><img id="detailQrImage" src="<?= $qrUrl ?>" style="width:180px;height:180px;object-fit:contain;" alt="QR"/></div>

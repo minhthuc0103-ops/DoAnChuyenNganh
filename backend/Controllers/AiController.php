@@ -214,7 +214,7 @@ class AiController
 
         if ($this->match($msg, ['thanh toán','đóng tiền','trả tiền','cách đóng','chuyển khoản','qr'])) {
             $ql = $db->query("SELECT * FROM account WHERE vai_tro IN ('quan_ly','chu_tro') LIMIT 1")->fetch();
-            return "💳 Cách thanh toán tiền phòng:\n\n1. Tiền mặt: Gặp trực tiếp quản lý\n2. Chuyển khoản: Quét QR Banking trong trang hóa đơn\n3. MoMo hoặc VNPay: Chọn đúng tab QR và nhập đúng số tiền, nội dung\n4. Thời hạn: Từ ngày 01-05 hàng tháng\n\n⚠ Đóng trễ sau ngày 5 có thể bị nhắc nhở.\n📞 " . $this->getSdtQuanLy($db);
+            return "💳 Cách thanh toán tiền phòng:\n\n1. Tiền mặt: Gặp trực tiếp quản lý\n2. Chuyển khoản: Quét QR Banking trong trang hóa đơn\n3. MoMo: Chọn tab MoMo, quét QR và nhập đúng số tiền, nội dung\n4. Thời hạn: Từ ngày 01-05 hàng tháng\n\n⚠ Đóng trễ sau ngày 5 có thể bị nhắc nhở.\n📞 " . $this->getSdtQuanLy($db);
         }
 
         // ═══════════════════════════════════════════════════

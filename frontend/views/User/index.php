@@ -310,7 +310,6 @@ require_once 'frontend/views/Layouts/header.php';
           <label class="pay-method active" data-val="tien_mat" onclick="selectPayMethod(this)"><span style="font-size:24px;">💵</span><div><div style="font-size:13px;font-weight:700;color:var(--text);">Tiền mặt</div><div style="font-size:11px;color:var(--text3);">Thu trực tiếp</div></div></label>
           <label class="pay-method" data-val="chuyen_khoan" onclick="selectPayMethod(this)"><span style="font-size:24px;">🏦</span><div><div style="font-size:13px;font-weight:700;color:var(--text);">Chuyển khoản</div><div style="font-size:11px;color:var(--text3);">QR Banking</div></div></label>
           <label class="pay-method" data-val="momo" onclick="selectPayMethod(this)"><span style="font-size:24px;">📱</span><div><div style="font-size:13px;font-weight:700;color:var(--text);">MoMo</div><div style="font-size:11px;color:var(--text3);">QR riêng</div></div></label>
-          <label class="pay-method" data-val="vnpay" onclick="selectPayMethod(this)"><span style="font-size:24px;">🔵</span><div><div style="font-size:13px;font-weight:700;color:var(--text);">VNPay</div><div style="font-size:11px;color:var(--text3);">VNPay-QR</div></div></label>
         </div>
       </div>
       <div id="payQRSection" style="display:none;margin-bottom:20px;">
@@ -348,7 +347,7 @@ require_once 'frontend/views/Layouts/header.php';
 <link rel="stylesheet" href="frontend/assets/css/user-index-2.css">
 <script>
 let currentBankQrUrl='';
-const walletQrUrls={momo:'<?= MOMO_QR_IMAGE ?>',vnpay:'<?= VNPAY_QR_IMAGE ?>'};
+const walletQrUrls={momo:'<?= MOMO_QR_IMAGE ?>'};
 function openPayModal(hdId,soPhong,tongTien,thang,nam){
   const nd='TT phong '+soPhong+' T'+thang+'/'+nam;
   document.getElementById('userPayForm').action='index.php?controller=hoadon&action=xacNhanThanhToanNguoiThue&id='+hdId;
@@ -397,7 +396,7 @@ function selectPayMethod(el){
     document.getElementById('payQrTitle').textContent='🏦 Quét QR Banking để chuyển khoản';document.getElementById('payQrHint').textContent='QR ngân hàng đã điền sẵn số tiền và nội dung.';
   }else if(walletQrUrls[val]){
     document.getElementById('payModalQR').src=walletQrUrls[val];document.getElementById('payBankInfo').style.display='none';
-    document.getElementById('payQrTitle').textContent=val==='momo'?'📱 Quét QR bằng MoMo':'🔵 Quét mã VNPay-QR';document.getElementById('payQrHint').textContent='QR tĩnh: hãy nhập đúng số tiền và nội dung hiển thị trước khi xác nhận.';
+    document.getElementById('payQrTitle').textContent='📱 Quét QR bằng MoMo';document.getElementById('payQrHint').textContent='QR tĩnh: hãy nhập đúng số tiền và nội dung hiển thị trước khi xác nhận.';
   }
 }
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closePayModal();});

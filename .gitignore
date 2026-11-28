@@ -21,3 +21,9 @@ backend/config/google.local.php
 
 # Ảnh chứng từ chuyển khoản của người thuê (dữ liệu nhạy cảm)
 public/uploads/chung_tu/
+
+# Tài khoản ngân hàng nhận tiền của riêng từng máy — KHÔNG đưa lên Git
+backend/config/payment.local.php
+backend/config/payment.local.example.php
+# Ảnh QR MoMo của riêng máy này — KHÔNG đưa lên Git
+public/uploads/payment/momo_qr_rieng.png

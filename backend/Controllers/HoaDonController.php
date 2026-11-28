@@ -301,7 +301,7 @@ class HoaDonController {
             exit;
         }
 
-        $allowed = ['tien_mat', 'chuyen_khoan', 'momo', 'vnpay'];
+        $allowed = ['tien_mat', 'chuyen_khoan', 'momo'];   // chủ trọ chỉ nhận tiền mặt, chuyển khoản ngân hàng và MoMo
         $phuong_thuc = $_POST['phuong_thuc'] ?? 'chuyen_khoan';
         if (!in_array($phuong_thuc, $allowed, true)) {
             $phuong_thuc = 'chuyen_khoan';
@@ -339,7 +339,7 @@ class HoaDonController {
 
         // Báo cho quản lý trong mục Thông báo: bấm vào để mở hóa đơn, xem ảnh và xác nhận
         try {
-            $ptTen = ['tien_mat' => 'tiền mặt', 'chuyen_khoan' => 'chuyển khoản', 'momo' => 'MoMo', 'vnpay' => 'VNPay'][$phuong_thuc];
+            $ptTen = ['tien_mat' => 'tiền mặt', 'chuyen_khoan' => 'chuyển khoản', 'momo' => 'MoMo'][$phuong_thuc];
             (new ThongBaoModel())->createRieng(
                 'Yêu cầu xác nhận thanh toán – Phòng ' . $hd['so_phong'] . ' tháng ' . $hd['thang'] . '/' . $hd['nam'],
                 ($nguoiTra !== '' ? $nguoiTra : 'Người thuê') . ' báo đã thanh toán ' . number_format((float)$hd['tong_tien'], 0, ',', '.') . 'đ bằng ' . $ptTen
