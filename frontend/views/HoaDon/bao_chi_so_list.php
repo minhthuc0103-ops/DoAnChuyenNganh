@@ -17,6 +17,9 @@ require_once 'frontend/views/Layouts/header.php';
 <?php if(isset($_GET['msg']) && $_GET['msg'] === 'rejected'): ?>
   <div class="msg-alert msg-success" style="margin-bottom:18px;">✅ Đã từ chối báo số điện nước!</div>
 <?php endif; ?>
+<?php if(!empty($_GET['err'])): ?>
+  <div class="msg-alert msg-error" style="margin-bottom:18px;">❌ <?= htmlspecialchars($_GET['err']) ?></div>
+<?php endif; ?>
 
 <div class="card">
   <div class="card-header">
@@ -98,9 +101,18 @@ require_once 'frontend/views/Layouts/header.php';
 
               <td style="text-align:right;">
                 <div style="display:inline-flex;gap:6px;align-items:center;">
-                  <!-- Lập hóa đơn từ báo số này -->
-                  <a href="index.php?controller=hoadon&action=create&phong_id=<?= $r['phong_id'] ?>&thang=<?= $r['thang'] ?>&nam=<?= $r['nam'] ?>&dien_moi=<?= $r['chi_so_dien'] ?>&nuoc_moi=<?= $r['chi_so_nuoc'] ?>&anh_dien=<?= urlencode($r['anh_cong_to_dien']??'') ?>&anh_nuoc=<?= urlencode($r['anh_cong_to_nuoc']??'') ?>&bcs_id=<?= $r['id'] ?>" class="btn btn-primary" style="padding:6px 12px;font-size:13px;font-weight:600;">
-                    ⚡ Lập HĐ với số này
+                  <!-- Tạo hóa đơn tự động ngay (1-click) -->
+                  <form method="POST" action="index.php?controller=hoadon&action=duyetNhanhBaoChiSo" style="display:inline;">
+                    <?= Csrf::field() ?>
+                    <input type="hidden" name="id" value="<?= $r['id'] ?>">
+                    <button type="submit" class="btn btn-primary" style="padding:6px 12px;font-size:13px;font-weight:600;">
+                      ⚡ Tự tạo HĐ ngay
+                    </button>
+                  </form>
+
+                  <!-- Chỉnh sửa / Xem trước trên form tạo hóa đơn -->
+                  <a href="index.php?controller=hoadon&action=create&phong_id=<?= $r['phong_id'] ?>&thang=<?= $r['thang'] ?>&nam=<?= $r['nam'] ?>&dien_moi=<?= $r['chi_so_dien'] ?>&nuoc_moi=<?= $r['chi_so_nuoc'] ?>&anh_dien=<?= urlencode($r['anh_cong_to_dien']??'') ?>&anh_nuoc=<?= urlencode($r['anh_cong_to_nuoc']??'') ?>&bcs_id=<?= $r['id'] ?>" class="btn btn-outline" style="padding:6px 10px;font-size:12px;" title="Mở form kiểm tra">
+                    ✎ Sửa
                   </a>
 
                   <!-- Từ chối -->

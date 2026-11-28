@@ -435,6 +435,19 @@ class UserController {
             if ($csDien <= 0 && $csNuoc <= 0) {
                 $error = 'Vui lòng nhập hoặc chụp ảnh chỉ số điện, nước!';
             } else {
+                // Tự động tạo / cập nhật hóa đơn luôn khi người thuê gửi chỉ số
+                $hdCtrl = new HoaDonController();
+                $autoRes = $hdCtrl->autoCreateOrUpdateInvoice([
+                    'phong_id'         => $phong_id,
+                    'thang'            => $thang,
+                    'nam'              => $nam,
+                    'chi_so_dien_moi'  => $csDien > 0 ? $csDien : null,
+                    'chi_so_nuoc_moi'  => $csNuoc > 0 ? $csNuoc : null,
+                    'anh_cong_to_dien' => $anhDien ?: null,
+                    'anh_cong_to_nuoc' => $anhNuoc ?: null,
+                ]);
+
+                $trangThaiBcs = ($autoRes['ok'] && !empty($autoRes['hoa_don_id'])) ? 'da_duyet' : 'cho_duyet';
                 $baoChiSoModel->create([
                     'phong_id'         => $phong_id,
                     'nguoi_thue_id'    => $nguoi_thue['id'],
@@ -445,9 +458,14 @@ class UserController {
                     'anh_cong_to_dien' => $anhDien ?: null,
                     'anh_cong_to_nuoc' => $anhNuoc ?: null,
                     'ghi_chu'          => $ghiChu,
-                    'trang_thai'       => 'cho_duyet'
+                    'trang_thai'       => $trangThaiBcs
                 ]);
-                $success = 'Đã gửi chỉ số điện nước thành công! Chủ trọ sẽ duyệt và lập hóa đơn.';
+
+                if ($autoRes['ok'] && !empty($autoRes['hoa_don_id'])) {
+                    $success = '🎉 ' . $autoRes['message'] . ' — Bạn có thể xem và thanh toán ngay!';
+                } else {
+                    $success = 'Đã gửi chỉ số điện nước thành công! Chủ trọ sẽ duyệt và lập hóa đơn.';
+                }
             }
         }
 

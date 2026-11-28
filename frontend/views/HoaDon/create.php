@@ -92,6 +92,31 @@ $bcs_id_init   = (int)($_POST['bao_chi_so_id'] ?? $_GET['bcs_id'] ?? 0);
           </div>
         </div>
 
+        <!-- CHẾ ĐỘ AI TỰ ĐỘNG TẠO HÓA ĐƠN KHI QUÉT / TẢI ẢNH -->
+        <div style="background:linear-gradient(135deg,rgba(34,201,147,.12),rgba(79,142,247,.1));border:1px solid rgba(34,201,147,.35);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="checkbox" id="auto_create_invoice" checked style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;">
+            <label for="auto_create_invoice" style="cursor:pointer;font-size:13px;font-weight:700;color:var(--text);">
+              🤖 Tự động tạo / cập nhật hóa đơn ngay khi quét hoặc tải ảnh công tơ lên
+            </label>
+          </div>
+          <span class="badge" style="background:rgba(34,201,147,.2);color:var(--green);font-size:11px;">AI Vision Auto-Invoice</span>
+        </div>
+
+        <!-- BANNER KẾT QUẢ TỰ ĐỘNG TẠO HÓA ĐƠN -->
+        <div id="auto_invoice_banner" style="display:none;background:rgba(34,201,147,.14);border:1px solid var(--green);border-radius:10px;padding:14px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+              <div id="auto_invoice_title" style="font-weight:800;color:var(--green);font-size:14px;">✅ Đã tự động tạo hóa đơn thành công!</div>
+              <div id="auto_invoice_desc" style="font-size:13px;color:var(--text2);margin-top:4px;"></div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <a id="auto_invoice_link" href="#" class="btn btn-primary" style="padding:6px 12px;font-size:12px;">👁 Xem hóa đơn</a>
+              <a href="index.php?controller=hoadon&action=index" class="btn btn-outline" style="padding:6px 12px;font-size:12px;">📋 Danh sách HĐ</a>
+            </div>
+          </div>
+        </div>
+
         <!-- BANNER GỢI Ý KHI NGƯỜI THUÊ ĐÃ GỬI BÁO SỐ -->
         <div id="bcs_banner" style="display:none;background:rgba(34,201,147,.1);border:1px solid rgba(34,201,147,.3);border-radius:10px;padding:12px 14px;margin-bottom:16px;">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -125,21 +150,21 @@ $bcs_id_init   = (int)($_POST['bao_chi_so_id'] ?? $_GET['bcs_id'] ?? 0);
 
           <div class="form-grid">
             <div class="form-group" style="margin-bottom:0">
-              <label class="form-label">Chỉ số cũ (kWh)</label>
+              <label class="form-label">Chỉ số cũ đã ghi nhớ (kWh) <span id="nguon_dien_cu" style="font-size:10px;color:var(--text3);font-weight:400;"></span></label>
               <input class="form-control" type="number" name="chi_so_dien_cu" id="dien_cu"
                      min="0" step="0.1" placeholder="0"
                      value="<?= $_POST['chi_so_dien_cu']??'0' ?>" oninput="calcTotal()"/>
             </div>
             <div class="form-group" style="margin-bottom:0">
-              <label class="form-label">Chỉ số mới (kWh) <span id="dien_ai_badge" class="badge" style="display:none;background:rgba(34,201,147,.15);color:var(--green);font-size:10px;">AI đã đọc</span></label>
+              <label class="form-label">Chỉ số trên công tơ mới (kWh) <span id="dien_ai_badge" class="badge" style="display:none;background:rgba(34,201,147,.15);color:var(--green);font-size:10px;">AI đã đọc</span></label>
               <input class="form-control" type="number" name="chi_so_dien_moi" id="dien_moi"
                      min="0" step="0.1" placeholder="0"
                      value="<?= htmlspecialchars($dien_moi_init) ?>" oninput="calcTotal()"/>
             </div>
           </div>
-          <div style="margin-top:8px;font-size:12px;color:var(--text3)">
-            Tiêu thụ: <strong id="kwh" style="color:var(--amber)">0</strong> kWh
-            → <strong id="tien_dien_show" style="color:var(--amber)">0đ</strong>
+          <div style="margin-top:8px;font-size:12px;color:var(--text3)" id="dien_formula_line">
+            Tiêu thụ (Số mới − Số cũ): <strong id="kwh" style="color:var(--amber)">0</strong> kWh
+            → Thành tiền: <strong id="tien_dien_show" style="color:var(--amber)">0đ</strong>
           </div>
         </div>
 
@@ -163,21 +188,21 @@ $bcs_id_init   = (int)($_POST['bao_chi_so_id'] ?? $_GET['bcs_id'] ?? 0);
 
           <div class="form-grid">
             <div class="form-group" style="margin-bottom:0">
-              <label class="form-label">Chỉ số cũ (m³)</label>
+              <label class="form-label">Chỉ số cũ đã ghi nhớ (m³) <span id="nguon_nuoc_cu" style="font-size:10px;color:var(--text3);font-weight:400;"></span></label>
               <input class="form-control" type="number" name="chi_so_nuoc_cu" id="nuoc_cu"
                      min="0" step="0.1" placeholder="0"
                      value="<?= $_POST['chi_so_nuoc_cu']??'0' ?>" oninput="calcTotal()"/>
             </div>
             <div class="form-group" style="margin-bottom:0">
-              <label class="form-label">Chỉ số mới (m³) <span id="nuoc_ai_badge" class="badge" style="display:none;background:rgba(34,201,147,.15);color:var(--green);font-size:10px;">AI đã đọc</span></label>
+              <label class="form-label">Chỉ số trên công tơ mới (m³) <span id="nuoc_ai_badge" class="badge" style="display:none;background:rgba(34,201,147,.15);color:var(--green);font-size:10px;">AI đã đọc</span></label>
               <input class="form-control" type="number" name="chi_so_nuoc_moi" id="nuoc_moi"
                      min="0" step="0.1" placeholder="0"
                      value="<?= htmlspecialchars($nuoc_moi_init) ?>" oninput="calcTotal()"/>
             </div>
           </div>
-          <div style="margin-top:8px;font-size:12px;color:var(--text3)">
-            Tiêu thụ: <strong id="m3" style="color:var(--accent)">0</strong> m³
-            → <strong id="tien_nuoc_show" style="color:var(--accent)">0đ</strong>
+          <div style="margin-top:8px;font-size:12px;color:var(--text3)" id="nuoc_formula_line">
+            Tiêu thụ (Số mới − Số cũ): <strong id="m3" style="color:var(--accent)">0</strong> m³
+            → Thành tiền: <strong id="tien_nuoc_show" style="color:var(--accent)">0đ</strong>
           </div>
         </div>
 
@@ -243,29 +268,32 @@ function autoFill() {
   if (!opt || !opt.value) {
     tienPhong = 0;
     soXe = 0;
+    document.getElementById('dien_cu').value = 0;
+    document.getElementById('nuoc_cu').value = 0;
     calcTotal();
     document.getElementById('bcs_banner').style.display = 'none';
     return;
   }
   tienPhong = parseFloat(opt.dataset.gia || 0);
+  const thang = document.getElementById('sel_thang').value;
+  const nam = document.getElementById('sel_nam').value;
 
-  // Lấy chỉ số cũ
-  fetch(`index.php?controller=hoadon&action=getChiSoCu&phong_id=${opt.value}`)
+  // Luôn lấy lại chỉ số cũ đã ghi nhớ của phòng đang chọn (loại trừ tháng đang lập)
+  fetch(`index.php?controller=hoadon&action=getChiSoCu&phong_id=${opt.value}&thang=${thang}&nam=${nam}`)
     .then(r => r.json())
     .then(d => {
-      if (document.getElementById('dien_cu').value === '' || document.getElementById('dien_cu').value === '0') {
-        document.getElementById('dien_cu').value = d.dien || 0;
-      }
-      if (document.getElementById('nuoc_cu').value === '' || document.getElementById('nuoc_cu').value === '0') {
-        document.getElementById('nuoc_cu').value = d.nuoc || 0;
-      }
+      document.getElementById('dien_cu').value = (d.dien !== undefined ? d.dien : (d.chi_so_dien_moi || 0));
+      document.getElementById('nuoc_cu').value = (d.nuoc !== undefined ? d.nuoc : (d.chi_so_nuoc_moi || 0));
+      const nguonTxt = d.nguon ? `(${d.nguon})` : '';
+      const ndEl = document.getElementById('nguon_dien_cu');
+      const nnEl = document.getElementById('nguon_nuoc_cu');
+      if (ndEl) ndEl.textContent = nguonTxt;
+      if (nnEl) nnEl.textContent = nguonTxt;
       soXe = d.so_xe || 0;
       calcTotal();
     });
 
   // Kiểm tra báo số từ người thuê
-  const thang = document.getElementById('sel_thang').value;
-  const nam = document.getElementById('sel_nam').value;
   fetch(`index.php?controller=hoadon&action=getBaoChiSo&phong_id=${opt.value}&thang=${thang}&nam=${nam}`)
     .then(r => r.json())
     .then(res => {
@@ -307,6 +335,15 @@ async function handleOwnerScan(input, type) {
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
 
+  const phongSel = document.getElementById('phongSel');
+  const autoCreateChk = document.getElementById('auto_create_invoice');
+  if (autoCreateChk && autoCreateChk.checked && !phongSel.value) {
+    alert('Vui lòng chọn Phòng trước khi tải ảnh lên để AI tự động tạo hóa đơn!');
+    input.value = '';
+    phongSel.focus();
+    return;
+  }
+
   const scanBox = document.getElementById(`scan_box_${type}`);
   const scanImg = document.getElementById(`scan_img_${type}`);
   const scanStatus = document.getElementById(`scan_status_${type}`);
@@ -316,7 +353,7 @@ async function handleOwnerScan(input, type) {
 
   scanBox.style.display = 'block';
   scanImg.src = URL.createObjectURL(file);
-  scanStatus.innerHTML = `<span style="color:var(--accent);">🤖 AI đang phân tích mặt số công tơ...</span>`;
+  scanStatus.innerHTML = `<span style="color:var(--accent);">🤖 AI đang phân tích mặt số công tơ và tính toán hóa đơn...</span>`;
 
   // 1. Client OCR qua Tesseract
   let ocrClientText = '';
@@ -327,13 +364,24 @@ async function handleOwnerScan(input, type) {
     }
   } catch(e) {}
 
-  // 2. Server upload & Vision AI
+  // 2. Server upload, Vision AI & Auto Create Invoice
   const formData = new FormData();
   formData.append('meter_image', file);
+  formData.append(type === 'dien' ? 'anh_dien' : 'anh_nuoc', file);
   formData.append('type', type);
   formData.append('ocr_text', ocrClientText);
+  formData.append('phong_id', phongSel.value || '0');
+  formData.append('thang', document.getElementById('sel_thang').value);
+  formData.append('nam', document.getElementById('sel_nam').value);
+  formData.append('chi_so_dien_cu', document.getElementById('dien_cu').value || '0');
+  formData.append('chi_so_nuoc_cu', document.getElementById('nuoc_cu').value || '0');
+  formData.append('chi_so_dien_moi', document.getElementById('dien_moi').value || '');
+  formData.append('chi_so_nuoc_moi', document.getElementById('nuoc_moi').value || '');
+  formData.append('anh_cong_to_dien', document.getElementById('anh_cong_to_dien').value || '');
+  formData.append('anh_cong_to_nuoc', document.getElementById('anh_cong_to_nuoc').value || '');
+  formData.append('auto_create_invoice', (autoCreateChk && autoCreateChk.checked) ? '1' : '0');
 
-  fetch('index.php?controller=ai&action=readMeter', {
+  fetch('index.php?controller=ai&action=quetChiSoDongHo', {
     method: 'POST',
     body: formData
   })
@@ -341,10 +389,18 @@ async function handleOwnerScan(input, type) {
   .then(data => {
     if (data.ok) {
       pathHidden.value = data.file_path;
-      if (data.reading !== null && data.reading > 0) {
-        valInput.value = data.reading;
+      const readingVal = (data.chi_so_moi !== undefined && data.chi_so_moi !== null) ? data.chi_so_moi : data.reading;
+      if (readingVal !== null && readingVal > 0) {
+        valInput.value = readingVal;
+        if (data.chi_so_cu !== undefined && data.chi_so_cu > 0) {
+          document.getElementById(`${type}_cu`).value = data.chi_so_cu;
+        }
+        const curCu = parseFloat(document.getElementById(`${type}_cu`).value) || 0;
+        const usedVal = Math.max(0, readingVal - curCu).toFixed(1);
+        const unit = type === 'dien' ? 'kWh' : 'm³';
         badge.style.display = 'inline-block';
-        scanStatus.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ AI đã đọc thành công: ${data.reading}</span>`;
+        const confPct = data.do_tin_cay ? Math.round(data.do_tin_cay * 100) : 95;
+        scanStatus.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ AI đọc số mới trên công tơ: ${readingVal} ${unit} − Số cũ đã nhớ: ${curCu} ${unit} = Tiêu thụ: ${usedVal} ${unit} (Độ tin cậy: ${confPct}%)</span>`;
       } else {
         const nums = ocrClientText.match(/\b\d{3,6}\b/);
         if (nums && nums[0]) {
@@ -355,6 +411,31 @@ async function handleOwnerScan(input, type) {
           scanStatus.innerHTML = `<span style="color:var(--amber);">⚠️ Đã lưu ảnh. Vui lòng nhìn ảnh và nhập số tương ứng.</span>`;
         }
       }
+
+      // Nếu server đã tự động tạo hoặc cập nhật hóa đơn thành công
+      if (data.invoice && data.invoice.ok) {
+        const inv = data.invoice.data;
+        if (inv) {
+          document.getElementById('dien_cu').value = inv.chi_so_dien_cu;
+          document.getElementById('dien_moi').value = inv.chi_so_dien_moi;
+          document.getElementById('nuoc_cu').value = inv.chi_so_nuoc_cu;
+          document.getElementById('nuoc_moi').value = inv.chi_so_nuoc_moi;
+        }
+        const banner = document.getElementById('auto_invoice_banner');
+        const titleEl = document.getElementById('auto_invoice_title');
+        const descEl = document.getElementById('auto_invoice_desc');
+        const linkEl = document.getElementById('auto_invoice_link');
+
+        banner.style.display = 'block';
+        titleEl.innerHTML = data.invoice.action === 'created'
+          ? '🎉 AI đã tự động TẠO HÓA ĐƠN điện nước thành công!'
+          : '🔄 AI đã tự động CẬP NHẬT HÓA ĐƠN điện nước thành công!';
+        descEl.innerHTML = data.invoice.message + ' (Bạn có thể quét tiếp đồng hồ còn lại để cập nhật tự động, hoặc bấm Xem hóa đơn)';
+        linkEl.href = `index.php?controller=hoadon&action=chiTiet&id=${data.invoice.hoa_don_id}`;
+      } else if (data.invoice && !data.invoice.ok) {
+        scanStatus.innerHTML += `<div style="color:var(--amber);margin-top:4px;">ℹ️ ${data.invoice.message}</div>`;
+      }
+
       calcTotal();
     } else {
       scanStatus.innerHTML = `<span style="color:var(--red);">❌ ${data.message || 'Lỗi quét'}</span>`;
@@ -379,16 +460,17 @@ function calcTotal() {
   const phiXe = soXe * PHI_XE_1;
   const tong  = tienPhong + tDien + tNuoc + PHI_DV + phiXe;
 
-  document.getElementById('kwh').textContent = kwh.toFixed(1);
-  document.getElementById('m3').textContent  = m3.toFixed(1);
-  document.getElementById('tien_dien_show').textContent = Math.round(tDien).toLocaleString('vi-VN') + 'đ';
-  document.getElementById('tien_nuoc_show').textContent = Math.round(tNuoc).toLocaleString('vi-VN') + 'đ';
+  document.getElementById('dien_formula_line').innerHTML =
+    `Công thức: <strong>${dm}</strong> (số mới) − <strong>${dc}</strong> (số cũ) = <strong id="kwh" style="color:var(--amber)">${kwh.toFixed(1)}</strong> kWh × ${GIA_DIEN.toLocaleString('vi-VN')}đ = <strong id="tien_dien_show" style="color:var(--amber)">${Math.round(tDien).toLocaleString('vi-VN')}đ</strong>`;
+
+  document.getElementById('nuoc_formula_line').innerHTML =
+    `Công thức: <strong>${nm}</strong> (số mới) − <strong>${nc}</strong> (số cũ) = <strong id="m3" style="color:var(--accent)">${m3.toFixed(1)}</strong> m³ × ${GIA_NUOC.toLocaleString('vi-VN')}đ = <strong id="tien_nuoc_show" style="color:var(--accent)">${Math.round(tNuoc).toLocaleString('vi-VN')}đ</strong>`;
 
   document.getElementById('tongShow').textContent = Math.round(tong).toLocaleString('vi-VN') + 'đ';
   document.getElementById('tongDetail').innerHTML =
     `Phòng: <strong>${tienPhong.toLocaleString('vi-VN')}đ</strong> + ` +
-    `Điện: <strong>${Math.round(tDien).toLocaleString('vi-VN')}đ</strong> + ` +
-    `Nước: <strong>${Math.round(tNuoc).toLocaleString('vi-VN')}đ</strong> + ` +
+    `Điện (${kwh.toFixed(1)} kWh): <strong>${Math.round(tDien).toLocaleString('vi-VN')}đ</strong> + ` +
+    `Nước (${m3.toFixed(1)} m³): <strong>${Math.round(tNuoc).toLocaleString('vi-VN')}đ</strong> + ` +
     `DV: <strong>${PHI_DV.toLocaleString('vi-VN')}đ</strong>` +
     (phiXe > 0 ? ` + Xe (${soXe} chiếc): <strong>${phiXe.toLocaleString('vi-VN')}đ</strong>` : '');
 }

@@ -41,6 +41,24 @@ require_once 'frontend/views/Layouts/header.php';
       <form method="POST" action="index.php?controller=user&action=baoChiSo" id="meterForm">
         <?= Csrf::field() ?>
 
+        <!-- BANNER TỰ ĐỘNG TẠO HÓA ĐƠN KHI QUÉT ẢNH -->
+        <div style="background:linear-gradient(135deg,rgba(34,201,147,.12),rgba(79,142,247,.1));border:1px solid rgba(34,201,147,.35);border-radius:10px;padding:12px 14px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="checkbox" id="auto_create_invoice" checked style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;">
+            <label for="auto_create_invoice" style="cursor:pointer;font-size:13px;font-weight:700;color:var(--text);">
+              🤖 Tự động tạo hóa đơn điện nước ngay khi chụp / tải ảnh công tơ lên
+            </label>
+          </div>
+        </div>
+
+        <div id="user_auto_invoice_banner" style="display:none;background:rgba(34,201,147,.14);border:1px solid var(--green);border-radius:10px;padding:14px;margin-bottom:16px;">
+          <div style="font-weight:800;color:var(--green);font-size:14px;" id="user_auto_invoice_title">🎉 Đã tự động lập hóa đơn thành công!</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:4px;" id="user_auto_invoice_desc"></div>
+          <div style="margin-top:10px;">
+            <a id="user_auto_invoice_link" href="#" class="btn btn-primary" style="padding:6px 14px;font-size:12px;">🧾 Xem & Thanh toán hóa đơn ngay</a>
+          </div>
+        </div>
+
         <div class="form-grid" style="margin-bottom:16px;">
           <div class="form-group">
             <label class="form-label">Tháng</label>
@@ -239,13 +257,23 @@ async function handleImageUpload(input, type) {
     console.warn('Tesseract fallback:', err);
   }
 
-  // 2. Gửi ảnh lên server lưu trữ và kết hợp Gemini Vision AI / regex server
+  // 2. Gửi ảnh lên server lưu trữ, nhận diện AI Vision và tự động tạo hóa đơn
+  const autoCreateChk = document.getElementById('auto_create_invoice');
   const formData = new FormData();
   formData.append('meter_image', file);
+  formData.append(type === 'dien' ? 'anh_dien' : 'anh_nuoc', file);
   formData.append('type', type);
   formData.append('ocr_text', ocrClientText);
+  formData.append('phong_id', '<?= (int)($phong['id'] ?? 0) ?>');
+  formData.append('thang', document.getElementById('sel_thang').value);
+  formData.append('nam', '<?= (int)date('Y') ?>');
+  formData.append('chi_so_dien_moi', document.getElementById('val_dien').value || '');
+  formData.append('chi_so_nuoc_moi', document.getElementById('val_nuoc').value || '');
+  formData.append('anh_cong_to_dien', document.getElementById('path_dien').value || '');
+  formData.append('anh_cong_to_nuoc', document.getElementById('path_nuoc').value || '');
+  formData.append('auto_create_invoice', (autoCreateChk && autoCreateChk.checked) ? '1' : '0');
 
-  fetch('index.php?controller=ai&action=readMeter', {
+  fetch('index.php?controller=ai&action=quetChiSoDongHo', {
     method: 'POST',
     body: formData
   })
@@ -253,9 +281,14 @@ async function handleImageUpload(input, type) {
   .then(data => {
     if (data.ok) {
       pathInput.value = data.file_path;
-      if (data.reading !== null && data.reading > 0) {
-        valInput.value = data.reading;
-        statusElem.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ AI đã đọc thành công: ${data.reading} ${type==='dien'?'kWh':'m³'}</span>`;
+      const readingVal = (data.chi_so_moi !== undefined && data.chi_so_moi !== null) ? data.chi_so_moi : data.reading;
+      if (readingVal !== null && readingVal > 0) {
+        valInput.value = readingVal;
+        const oldVal = (data.chi_so_cu !== undefined && data.chi_so_cu !== null) ? parseFloat(data.chi_so_cu) : 0;
+        const usedVal = Math.max(0, readingVal - oldVal).toFixed(1);
+        const unit = type === 'dien' ? 'kWh' : 'm³';
+        const confPct = data.do_tin_cay ? Math.round(data.do_tin_cay * 100) : 95;
+        statusElem.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ AI đọc công tơ mới: ${readingVal} ${unit} − Số cũ đã nhớ: ${oldVal} ${unit} = Tiêu thụ: ${usedVal} ${unit} (${confPct}%)</span>`;
       } else {
         // Nếu AI chưa tự tin 100%, thử bóc tách số từ text client
         const nums = ocrClientText.match(/\b\d{3,6}\b/);
@@ -265,6 +298,20 @@ async function handleImageUpload(input, type) {
         } else {
           statusElem.innerHTML = `<span style="color:var(--amber);">⚠️ Đã lưu ảnh. Vui lòng nhìn ảnh phía trên và tự nhập chỉ số nếu AI chưa đọc rõ.</span>`;
         }
+      }
+
+      if (data.invoice && data.invoice.ok) {
+        const inv = data.invoice.data;
+        if (inv) {
+          if (inv.chi_so_dien_moi > 0) document.getElementById('val_dien').value = inv.chi_so_dien_moi;
+          if (inv.chi_so_nuoc_moi > 0) document.getElementById('val_nuoc').value = inv.chi_so_nuoc_moi;
+        }
+        const banner = document.getElementById('user_auto_invoice_banner');
+        const desc = document.getElementById('user_auto_invoice_desc');
+        const link = document.getElementById('user_auto_invoice_link');
+        banner.style.display = 'block';
+        desc.innerHTML = data.invoice.message;
+        link.href = `index.php?controller=hoadon&action=chiTiet&id=${data.invoice.hoa_don_id}`;
       }
     } else {
       statusElem.innerHTML = `<span style="color:var(--red);">❌ ${data.message || 'Lỗi xử lý ảnh'}</span>`;

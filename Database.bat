@@ -4,7 +4,8 @@ if /i "%~1"=="nopause" (set "PAUSE_CMD=rem") else (set "PAUSE_CMD=pause")
 title SUA DATABASE CHO APP QUAN LY PHONG TRO
 
 rem ===== Duong dan XAMPP cua ban =====
-set "XAMPP=C:\minhthuc\xampp"
+set "XAMPP=C:\xampp"
+if not exist "%XAMPP%\mysql\bin\mysql.exe" set "XAMPP=C:\minhthuc\xampp"
 set "MYSQL=%XAMPP%\mysql\bin\mysql.exe"
 set "DUMP=%XAMPP%\mysql\bin\mysqldump.exe"
 

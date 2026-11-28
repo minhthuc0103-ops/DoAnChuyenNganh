@@ -20,6 +20,18 @@ class AuthController {
             $lockKey = '_login_locked_until';
 
             $db   = Database::getInstance();
+
+            // Tự động khởi tạo tài khoản admin test nếu đăng nhập bằng 'admin' mà chưa có trong CSDL
+            if ($u === 'admin') {
+                $chkAdmin = $db->prepare("SELECT id FROM account WHERE username='admin' LIMIT 1");
+                $chkAdmin->execute();
+                if (!$chkAdmin->fetch()) {
+                    $defaultHash = password_hash('12345678', PASSWORD_DEFAULT);
+                    $db->prepare("INSERT INTO account (ho_ten, username, password, email, sdt, vai_tro) VALUES ('Admin Quản Lý', 'admin', ?, 'admin@roommanager.vn', '0941032534', 'quan_ly')")
+                       ->execute([$defaultHash]);
+                }
+            }
+
             $stmt = $db->prepare("SELECT * FROM account WHERE username=? LIMIT 1");
             $stmt->execute([$u]);
             $user = $stmt->fetch();
